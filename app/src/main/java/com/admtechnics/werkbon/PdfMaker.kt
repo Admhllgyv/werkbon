@@ -105,6 +105,24 @@ object PdfMaker {
         return PdfResult(out, fname)
     }
 
+    // --- Çizim Yardımcıları (Her seferinde fontu sıfırlar) ---
+    private fun drawTextNormal(canvas: Canvas, text: String, x: Float, y: Float, size: Float = 8f, color: Int = textDark, align: Paint.Align = Paint.Align.LEFT) {
+        paint.color = color
+        paint.textSize = size
+        paint.textAlign = align
+        paint.typeface = Typeface.DEFAULT
+        canvas.drawText(text, x, y, paint)
+    }
+
+    private fun drawTextBold(canvas: Canvas, text: String, x: Float, y: Float, size: Float = 8f, color: Int = primary, align: Paint.Align = Paint.Align.LEFT) {
+        boldPaint.color = color
+        boldPaint.textSize = size
+        boldPaint.textAlign = align
+        boldPaint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        canvas.drawText(text, x, y, boldPaint)
+    }
+    // ---------------------------------------------------------
+
     private fun drawHeader(canvas: Canvas, state: AppState, projectLabel: String, year: Int, week: Int, top: Float): Float {
         val boxH = 95f
         paint.style = Paint.Style.FILL
@@ -126,52 +144,38 @@ object PdfMaker {
             x += logoSize + 12f
         }
 
-        boldPaint.color = primary
-        boldPaint.textSize = 11f
-        boldPaint.textAlign = Paint.Align.LEFT
-        canvas.drawText(state.compName, x, yLine, boldPaint)
+        drawTextBold(canvas, state.compName, x, yLine, 11f)
         
         yLine += 16f
-        paint.color = Color.parseColor("#475569")
-        paint.textSize = 8.5f
-        paint.textAlign = Paint.Align.LEFT
-        canvas.drawText(state.compAddress, x, yLine, paint)
+        drawTextNormal(canvas, state.compAddress, x, yLine, 8f, Color.parseColor("#475569"))
         
         yLine += 13f
-        canvas.drawText("E-mail: ${state.compEmail} | GSM: ${state.compGsm}", x, yLine, paint)
+        drawTextNormal(canvas, "E-mail: ${state.compEmail} | GSM: ${state.compGsm}", x, yLine, 8f, Color.parseColor("#475569"))
         
         yLine += 13f
-        canvas.drawText("BTW: ${state.compBtw}", x, yLine, paint)
+        drawTextNormal(canvas, "BTW: ${state.compBtw}", x, yLine, 8f, Color.parseColor("#475569"))
 
         // SAĞ TARAF: Hafta ve Proje
-        // Sağ taraf için X koordinatını netleştiriyoruz
         val rightLabelX = PW - MARGIN - 180f
-        val rightValueX = PW - MARGIN - 80f
+        val rightValueX = PW - MARGIN - 85f
         
         // Hafta
-        boldPaint.color = primary
-        boldPaint.textSize = 9f
-        boldPaint.textAlign = Paint.Align.LEFT
-        canvas.drawText("Weeknummer:", rightLabelX, top + 26f, boldPaint)
-        paint.color = textDark
-        paint.textSize = 9f
-        paint.textAlign = Paint.Align.LEFT
-        canvas.drawText("$week ($year)", rightValueX, top + 26f, paint)
+        drawTextBold(canvas, "Weeknummer:", rightLabelX, top + 26f, 8.5f)
+        drawTextNormal(canvas, "$week ($year)", rightValueX, top + 26f, 8.5f)
 
         // Proje
-        boldPaint.color = primary
-        canvas.drawText("Project:", rightLabelX, top + 52f, boldPaint)
+        drawTextBold(canvas, "Project:", rightLabelX, top + 52f, 8.5f)
         
-        paint.color = textDark
-        val projectText = projectLabel
         val maxWidth = (PW - MARGIN) - rightValueX - 5f
-        val fittedText = fitText(projectText, paint, maxWidth)
-        canvas.drawText(fittedText, rightValueX, top + 52f, paint)
+        val fittedText = fitText(projectLabel, paint, maxWidth)
+        drawTextNormal(canvas, fittedText, rightValueX, top + 52f, 8.5f)
 
         return top + boxH
     }
 
     private fun fitText(text: String, p: Paint, maxWidth: Float): String {
+        p.textSize = 8.5f
+        p.typeface = Typeface.DEFAULT
         if (p.measureText(text) <= maxWidth) return text
         var s = text
         while (s.isNotEmpty() && p.measureText("$s...") > maxWidth) {
@@ -189,8 +193,8 @@ object PdfMaker {
         week: Int,
         top: Float
     ): Float {
-        // Sütun Genişlikleri Toplamı: 90 + 120 + 60 + 60 + 60 + 150 = 540 (Sayfa Genişliği: 595 - 2*28 = 539)
-        val cols = floatArrayOf(90f, 120f, 60f, 60f, 60f, 150f) 
+        // Sütun Genişlikleri Toplamı: 90 + 120 + 55 + 55 + 55 + 165 = 540
+        val cols = floatArrayOf(90f, 120f, 55f, 55f, 55f, 165f) 
         val rowH = 18f
         val x0 = MARGIN
         var y = top
@@ -198,15 +202,11 @@ object PdfMaker {
         paint.style = Paint.Style.FILL
         paint.color = primary
         canvas.drawRect(x0, y, PW - MARGIN, y + rowH, paint)
-        boldPaint.color = white
-        boldPaint.textSize = 8.5f
-        boldPaint.textAlign = Paint.Align.CENTER
         
         val heads = listOf("Medewerker", "Dag", "Start", "Pauze", "Einde", "Uren")
         var x = x0
         for (i in heads.indices) {
-            val cx = x + cols[i] / 2f
-            canvas.drawText(heads[i], cx, y + rowH - 6f, boldPaint)
+            drawTextBold(canvas, heads[i], x + cols[i] / 2f, y + rowH - 6f, 8.5f, white, Paint.Align.CENTER)
             x += cols[i]
         }
         y += rowH
@@ -225,30 +225,23 @@ object PdfMaker {
             val d = mon.plusDays(e.day.toLong())
             val dateStr = "${dayNl[e.day]} (${d.format(dateFmt)})"
 
-            paint.color = textDark
-            paint.textSize = 8f
             var xx = x0
 
-            // Medewerker (Sol hizalı)
-            boldPaint.color = textDark
-            boldPaint.textSize = 8f
-            boldPaint.textAlign = Paint.Align.LEFT
-            canvas.drawText(e.worker, xx + 6f, y + rowH - 6f, boldPaint)
+            // Medewerker (İsmin kesilmemesi için genişlik 90f yapıldı, font 8f)
+            drawTextBold(canvas, e.worker, xx + 6f, y + rowH - 6f, 8f)
             xx += cols[0]
 
-            // Dag (Sol hizalı)
-            paint.textAlign = Paint.Align.LEFT
-            canvas.drawText(dateStr, xx + 6f, y + rowH - 6f, paint)
+            // Dag
+            drawTextNormal(canvas, dateStr, xx + 6f, y + rowH - 6f, 8f)
             xx += cols[1]
 
-            // Saatler (Ortalı)
-            paint.textAlign = Paint.Align.CENTER
-            canvas.drawText(hm(e.start), xx + cols[2] / 2f, y + rowH - 6f, paint); xx += cols[2]
-            canvas.drawText(hm(e.pause), xx + cols[3] / 2f, y + rowH - 6f, paint); xx += cols[3]
-            canvas.drawText(hm(e.end), xx + cols[4] / 2f, y + rowH - 6f, paint); xx += cols[4]
+            // Saatler
+            drawTextNormal(canvas, hm(e.start), xx + cols[2] / 2f, y + rowH - 6f, 8f, textDark, Paint.Align.CENTER); xx += cols[2]
+            drawTextNormal(canvas, hm(e.pause), xx + cols[3] / 2f, y + rowH - 6f, 8f, textDark, Paint.Align.CENTER); xx += cols[3]
+            drawTextNormal(canvas, hm(e.end), xx + cols[4] / 2f, y + rowH - 6f, 8f, textDark, Paint.Align.CENTER); xx += cols[4]
             
-            // Uren (Ortalı)
-            canvas.drawText(fmt(e.hours()), xx + cols[5] / 2f, y + rowH - 6f, paint)
+            // Uren
+            drawTextNormal(canvas, fmt(e.hours()), xx + cols[5] / 2f, y + rowH - 6f, 8f, textDark, Paint.Align.CENTER)
 
             y += rowH
         }
@@ -263,15 +256,11 @@ object PdfMaker {
         week: Int,
         top: Float
     ): Float {
-        // Genişlikler: 70 + 110 + 260 + 100 = 540
         val cols = floatArrayOf(70f, 110f, 260f, 100f)
         val rowH = 18f
         var y = top
 
-        boldPaint.color = accent
-        boldPaint.textSize = 10f
-        boldPaint.textAlign = Paint.Align.LEFT
-        canvas.drawText("Materialen en Kosten:", MARGIN, y, boldPaint)
+        drawTextBold(canvas, "Materialen en Kosten:", MARGIN, y, 10f, accent)
         y += 8f
 
         paint.style = Paint.Style.FILL
@@ -282,14 +271,11 @@ object PdfMaker {
         paint.strokeWidth = 0.5f
         canvas.drawRect(MARGIN, y, PW - MARGIN, y + rowH, paint)
 
-        boldPaint.color = primary
-        boldPaint.textSize = 8.5f
-        boldPaint.textAlign = Paint.Align.LEFT
         var x = MARGIN + 6f
-        canvas.drawText("Document", x, y + rowH - 6f, boldPaint); x += cols[0]
-        canvas.drawText("Dag", x, y + rowH - 6f, boldPaint); x += cols[1]
-        canvas.drawText("Omschrijving", x, y + rowH - 6f, boldPaint); x += cols[2]
-        canvas.drawText("Bedrag (€)", x, y + rowH - 6f, boldPaint)
+        drawTextBold(canvas, "Document", x, y + rowH - 6f, 8.5f); x += cols[0]
+        drawTextBold(canvas, "Dag", x, y + rowH - 6f, 8.5f); x += cols[1]
+        drawTextBold(canvas, "Omschrijving", x, y + rowH - 6f, 8.5f); x += cols[2]
+        drawTextBold(canvas, "Bedrag (€)", x, y + rowH - 6f, 8.5f)
         y += rowH
 
         val dayNl = listOf("Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag")
@@ -303,22 +289,15 @@ object PdfMaker {
             paint.strokeWidth = 0.5f
             canvas.drawRect(MARGIN, y, PW - MARGIN, y + rowH, paint)
 
-            paint.color = textDark
-            paint.textSize = 8f
             var xx = MARGIN + 6f
             
-            boldPaint.color = textDark
-            boldPaint.textSize = 8f
-            boldPaint.textAlign = Paint.Align.LEFT
-            canvas.drawText(code, xx, y + rowH - 6f, boldPaint); xx += cols[0]
+            drawTextBold(canvas, code, xx, y + rowH - 6f, 8f); xx += cols[0]
 
-            paint.textAlign = Paint.Align.LEFT
             val d = mon.plusDays(e.day.toLong())
-            canvas.drawText("${dayNl[e.day]} (${d.format(dateFmt)})", xx, y + rowH - 6f, paint); xx += cols[1]
-            canvas.drawText(e.category, xx, y + rowH - 6f, paint); xx += cols[2]
+            drawTextNormal(canvas, "${dayNl[e.day]} (${d.format(dateFmt)})", xx, y + rowH - 6f, 8f); xx += cols[1]
+            drawTextNormal(canvas, e.category, xx, y + rowH - 6f, 8f); xx += cols[2]
             
-            paint.textAlign = Paint.Align.RIGHT
-            canvas.drawText("€%.2f".format(e.amount), xx + cols[3] - 6f, y + rowH - 6f, paint)
+            drawTextNormal(canvas, "€%.2f".format(e.amount), xx + cols[3] - 6f, y + rowH - 6f, 8f, textDark, Paint.Align.RIGHT)
 
             y += rowH
         }
@@ -342,52 +321,37 @@ object PdfMaker {
         canvas.drawRect(MARGIN, top, PW - MARGIN, top + boxH, paint)
 
         var y = top + 18f
-        boldPaint.color = primary
-        boldPaint.textSize = 8.5f
-        boldPaint.textAlign = Paint.Align.LEFT
-        canvas.drawText("Uren per medewerker:", MARGIN + 10f, y, boldPaint)
+        drawTextBold(canvas, "Uren per medewerker:", MARGIN + 10f, y, 8.5f)
         y += 14f
 
-        paint.color = textDark
-        paint.textSize = 8.5f
         val workerHours = mutableMapOf<String, Double>()
         for (e in entries) {
             workerHours[e.worker] = (workerHours[e.worker] ?: 0.0) + e.hours()
         }
         for ((w, h) in workerHours) {
-            canvas.drawText("• $w: ${fmt(h)} uur", MARGIN + 14f, y, paint)
+            drawTextNormal(canvas, "• $w: ${fmt(h)} uur", MARGIN + 14f, y, 8.5f)
             y += 12f
         }
         val totalH = workerHours.values.sum()
         val totalCost = expWithCode.sumOf { it.first.amount }
 
         val rightColX = MARGIN + 280f
-        boldPaint.color = primary
-        boldPaint.textSize = 8.5f
-        boldPaint.textAlign = Paint.Align.LEFT
-        canvas.drawText("Klantakkoord / Handtekening:", rightColX, top + 18f, boldPaint)
+        drawTextBold(canvas, "Klantakkoord / Handtekening:", rightColX, top + 18f, 8.5f)
 
         y = top + boxH - 30f
         paint.color = Color.parseColor("#94A3B8")
         paint.strokeWidth = 1f
         canvas.drawLine(rightColX, y, PW - MARGIN - 20f, y, paint)
 
-        paint.color = primary
-        boldPaint.color = primary
-        boldPaint.textSize = 9f
-        boldPaint.textAlign = Paint.Align.LEFT
-        canvas.drawText("Totale uren: ${fmt(totalH)} uur", MARGIN + 10f, top + boxH - 22f, boldPaint)
-        canvas.drawText("Totale kosten: €%.2f".format(totalCost), MARGIN + 10f, top + boxH - 10f, boldPaint)
+        drawTextBold(canvas, "Totale uren: ${fmt(totalH)} uur", MARGIN + 10f, top + boxH - 22f, 9f)
+        drawTextBold(canvas, "Totale kosten: €%.2f".format(totalCost), MARGIN + 10f, top + boxH - 10f, 9f)
 
         return top + boxH
     }
 
     private fun drawAttachmentsHeader(canvas: Canvas, chunkIdx: Int, top: Float): Float {
         val title = if (chunkIdx == 0) "Bijlagen / Bonnetjes:" else "Bijlagen / Bonnetjes (Vervolg):"
-        boldPaint.color = accent
-        boldPaint.textSize = 11f
-        boldPaint.textAlign = Paint.Align.LEFT
-        canvas.drawText(title, MARGIN, top + 14f, boldPaint)
+        drawTextBold(canvas, title, MARGIN, top + 14f, 11f, accent)
         return top + 14f
     }
 
@@ -407,15 +371,9 @@ object PdfMaker {
             paint.strokeWidth = 0.8f
             canvas.drawRect(x, y, x + cellW, y + cellH, paint)
 
-            boldPaint.color = primary
-            boldPaint.textSize = 8.5f
-            boldPaint.textAlign = Paint.Align.LEFT
             val dayNl = listOf("Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag")
-            canvas.drawText("$code - ${e.category} (€%.2f)".format(e.amount), x + 6f, y + 16f, boldPaint)
-            paint.color = textDark
-            paint.textSize = 8f
-            paint.textAlign = Paint.Align.LEFT
-            canvas.drawText(dayNl[e.day], x + 6f, y + 28f, paint)
+            drawTextBold(canvas, "$code - ${e.category} (€%.2f)".format(e.amount), x + 6f, y + 16f, 8.5f)
+            drawTextNormal(canvas, dayNl[e.day], x + 6f, y + 28f, 8f)
 
             val file = File(receiptsDir(ctx), e.image)
             if (file.exists()) {
