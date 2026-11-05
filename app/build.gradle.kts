@@ -15,7 +15,15 @@ android {
         versionName = "0.1"
     }
 
-    buildFeatures { compose = true }
+       signingConfigs {
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+buildFeatures { compose = true }
     composeOptions { kotlinCompilerExtensionVersion = "1.5.14" }
 
     compileOptions {
