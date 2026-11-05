@@ -264,15 +264,19 @@ fun WerkbonScreen(state: AppState) {
             Text("Önce Projeler ve Ayarlar sekmelerinden en az bir proje ve bir çalışan ekleyin.")
         }
 
+        // GÜNLÜK DÖNGÜ BAŞLANGICI
         for (d in 0..4) {
             val dayEntries = entries.withIndex().filter { it.value.day == d }
             val date = mon.plusDays(d.toLong())
             val dayTotal = r2(dayEntries.map { it.value.hours() }.sum())
-            Spacer(Modifier.height(14.dp))
-            Text("${dayTr[d]} (${dayNl[d]}) - ${date.format(dateFmt)}", fontWeight = FontWeight.Bold)
+            
+            Spacer(Modifier.height(16.dp))
+            Text("${dayTr[d]} (${dayNl[d]}) - ${date.format(dateFmt)}", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            
             if (dayEntries.isNotEmpty()) {
                 Text("Gün toplamı: ${fmt(dayTotal)} saat")
             }
+            
             for (iv in dayEntries) {
                 val idx = iv.index
                 EntryCard(
@@ -287,6 +291,7 @@ fun WerkbonScreen(state: AppState) {
                     }
                 )
             }
+            
             if (projects.isNotEmpty() && workers.isNotEmpty()) {
                 TextButton(onClick = {
                     val w = workers[0]
@@ -294,11 +299,17 @@ fun WerkbonScreen(state: AppState) {
                     setEntries(entries + WorkEntry(d, projects[0], w, t[0], t[1], t[2]))
                 }) { Text("+ Kayıt ekle") }
             }
+
+            // HER GÜNÜN KENDİ FİŞ BÖLÜMÜ
+            Spacer(Modifier.height(8.dp))
+            Text("💶 Fiş / Gider", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            ExpensesSection(state, key, day = d)
         }
+        // GÜNLÜK DÖNGÜ BİTİŞİ
 
         // ====== PDF OLUŞTURMA BÖLÜMÜ ======
-        Spacer(Modifier.height(20.dp))
-        Text("Werkbon PDF", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+        Spacer(Modifier.height(30.dp))
+        Text("Werkbon PDF", fontWeight = FontWeight.Bold, fontSize = 18.sp)
 
         val pdfItems = projects.filter { pLabel ->
             val hasEntries = entries.any { it.project == pLabel }
@@ -334,7 +345,6 @@ fun WerkbonScreen(state: AppState) {
         }
         // ====== PDF BÖLÜMÜ SONU ======
 
-        ExpensesSection(state, key)
         Spacer(Modifier.height(24.dp))
     }
 }
