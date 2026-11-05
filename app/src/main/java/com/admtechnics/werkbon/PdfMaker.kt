@@ -106,7 +106,7 @@ object PdfMaker {
     }
 
     private fun drawHeader(canvas: Canvas, state: AppState, projectLabel: String, year: Int, week: Int, top: Float): Float {
-        val boxH = 78f
+        val boxH = 95f // Yüksekliği biraz artırdık
         paint.style = Paint.Style.FILL
         paint.color = lightBg
         canvas.drawRect(MARGIN, top, PW - MARGIN, top + boxH, paint)
@@ -116,299 +116,53 @@ object PdfMaker {
         canvas.drawRect(MARGIN, top, PW - MARGIN, top + boxH, paint)
 
         var x = MARGIN + 10f
-        var yLine = top + 16f
+        var yLine = top + 22f
 
+        // Logo
         val logoBmp = loadLogo(state.compLogoPath)
         if (logoBmp != null) {
-            val logoSize = 52f
-            canvas.drawBitmap(logoBmp, null, RectF(x, top + 12f, x + logoSize, top + 12f + logoSize), null)
-            x += logoSize + 10f
+            val logoSize = 45f
+            canvas.drawBitmap(logoBmp, null, RectF(x, top + 20f, x + logoSize, top + 20f + logoSize), null)
+            x += logoSize + 12f
         }
 
+        // Firma Bilgileri
         paint.color = primary
         boldPaint.color = primary
         boldPaint.textSize = 11f
         boldPaint.textAlign = Paint.Align.LEFT
         canvas.drawText(state.compName, x, yLine, boldPaint)
-        yLine += 12f
+        
+        yLine += 16f // Satır aralığını açtık
         paint.color = Color.parseColor("#475569")
-        paint.textSize = 7.5f
-        canvas.drawText(state.compAddress, x, yLine, paint); yLine += 10f
-        canvas.drawText("E-mail: ${state.compEmail} | GSM: ${state.compGsm}", x, yLine, paint); yLine += 10f
+        paint.textSize = 8.5f
+        canvas.drawText(state.compAddress, x, yLine, paint)
+        
+        yLine += 13f
+        canvas.drawText("E-mail: ${state.compEmail} | GSM: ${state.compGsm}", x, yLine, paint)
+        
+        yLine += 13f
         canvas.drawText("BTW: ${state.compBtw}", x, yLine, paint)
 
-        val rightX = PW - MARGIN - 160f
+        // Sağ Taraf (Hafta ve Proje)
+        val rightX = PW - MARGIN - 180f 
+        
+        // Hafta
         boldPaint.color = primary
-        boldPaint.textSize = 8f
-        canvas.drawText("Weeknummer:", rightX, top + 20f, boldPaint)
-        canvas.drawText("Project:", rightX, top + 42f, boldPaint)
-        paint.color = textDark
-        paint.textSize = 8f
-        canvas.drawText("$week ($year)", rightX + 75f, top + 20f, paint)
-        canvas.drawText(projectLabel, rightX + 75f, top + 42f, paint)
-
-        return top + boxH
-    }
-
-    private fun drawWorkerTable(
-        canvas: Canvas,
-        state: AppState,
-        entries: List<WorkEntry>,
-        dayNl: List<String>,
-        year: Int,
-        week: Int,
-        top: Float
-    ): Float {
-        val cols = floatArrayOf(95f, 115f, 55f, 55f, 55f, 60f)
-        val rowH = 16f
-        val x0 = MARGIN
-        var y = top
-
-        paint.style = Paint.Style.FILL
-        paint.color = primary
-        canvas.drawRect(x0, y, PW - MARGIN, y + rowH, paint)
-        boldPaint.color = white
-        boldPaint.textSize = 8f
-        boldPaint.textAlign = Paint.Align.CENTER
-        val heads = listOf("Medewerker", "Dag", "Start", "Pauze", "Einde", "Uren")
-        var x = x0
-        for (i in heads.indices) {
-            val cx = x + cols[i] / 2f
-            canvas.drawText(heads[i], cx, y + rowH - 5f, boldPaint)
-            x += cols[i]
-        }
-        y += rowH
-
-        val mon = mondayOf(year, week)
-        for ((idx, e) in entries.withIndex()) {
-            paint.style = Paint.Style.FILL
-            paint.color = if (idx % 2 == 0) white else lightBg
-            canvas.drawRect(x0, y, PW - MARGIN, y + rowH, paint)
-
-            paint.style = Paint.Style.STROKE
-            paint.color = border
-            paint.strokeWidth = 0.5f
-            canvas.drawRect(x0, y, PW - MARGIN, y + rowH, paint)
-
-            val d = mon.plusDays(e.day.toLong())
-            val dateStr = "${dayNl[e.day]} (${d.format(dateFmt)})"
-
-            paint.color = textDark
-            paint.textSize = 7.5f
-            var xx = x0 + 4f
-
-            boldPaint.color = textDark
-            boldPaint.textSize = 7.5f
-            boldPaint.textAlign = Paint.Align.LEFT
-            canvas.drawText(e.worker, xx, y + rowH - 5f, boldPaint)
-            xx += cols[0]
-
-            canvas.drawText(dateStr, xx + 4f, y + rowH - 5f, paint); xx += cols[1]
-            paint.textAlign = Paint.Align.CENTER
-            canvas.drawText(hm(e.start), xx + cols[2] / 2f, y + rowH - 5f, paint); xx += cols[2]
-            canvas.drawText(hm(e.pause), xx + cols[3] / 2f, y + rowH - 5f, paint); xx += cols[3]
-            canvas.drawText(hm(e.end), xx + cols[4] / 2f, y + rowH - 5f, paint); xx += cols[4]
-            canvas.drawText(fmt(e.hours()), xx + cols[5] / 2f, y + rowH - 5f, paint)
-
-            y += rowH
-        }
-
-        return y
-    }
-
-    private fun drawExpenseTable(
-        canvas: Canvas,
-        items: List<Pair<Expense, String>>,
-        year: Int,
-        week: Int,
-        top: Float
-    ): Float {
-        val cols = floatArrayOf(70f, 105f, 200f, 60f)
-        val rowH = 16f
-        var y = top
-
-        boldPaint.color = accent
         boldPaint.textSize = 9f
         boldPaint.textAlign = Paint.Align.LEFT
-        canvas.drawText("Materialen en Kosten:", MARGIN, y, boldPaint)
-        y += 6f
-
-        paint.style = Paint.Style.FILL
-        paint.color = altBg
-        canvas.drawRect(MARGIN, y, PW - MARGIN, y + rowH, paint)
-        paint.style = Paint.Style.STROKE
-        paint.color = border
-        paint.strokeWidth = 0.5f
-        canvas.drawRect(MARGIN, y, PW - MARGIN, y + rowH, paint)
-
-        boldPaint.color = primary
-        boldPaint.textSize = 8f
-        boldPaint.textAlign = Paint.Align.LEFT
-        var x = MARGIN + 4f
-        canvas.drawText("Document", x, y + rowH - 5f, boldPaint); x += cols[0]
-        canvas.drawText("Dag", x, y + rowH - 5f, boldPaint); x += cols[1]
-        canvas.drawText("Omschrijving", x, y + rowH - 5f, boldPaint); x += cols[2]
-        canvas.drawText("Bedrag (€)", x, y + rowH - 5f, boldPaint)
-        y += rowH
-
-        val dayNl = listOf("Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag")
-        val mon = mondayOf(year, week)
-        for ((e, code) in items) {
-            paint.style = Paint.Style.FILL
-            paint.color = white
-            canvas.drawRect(MARGIN, y, PW - MARGIN, y + rowH, paint)
-            paint.style = Paint.Style.STROKE
-            paint.color = border
-            paint.strokeWidth = 0.5f
-            canvas.drawRect(MARGIN, y, PW - MARGIN, y + rowH, paint)
-
-            paint.color = textDark
-            paint.textSize = 7.5f
-            paint.textAlign = Paint.Align.LEFT
-            var xx = MARGIN + 4f
-            boldPaint.color = textDark
-            boldPaint.textSize = 7.5f
-            boldPaint.textAlign = Paint.Align.LEFT
-            canvas.drawText(code, xx, y + rowH - 5f, boldPaint); xx += cols[0]
-
-            val d = mon.plusDays(e.day.toLong())
-            canvas.drawText("${dayNl[e.day]} (${d.format(dateFmt)})", xx, y + rowH - 5f, paint); xx += cols[1]
-            canvas.drawText(e.category, xx, y + rowH - 5f, paint); xx += cols[2]
-            paint.textAlign = Paint.Align.RIGHT
-            canvas.drawText("€%.2f".format(e.amount), xx + cols[3] - 4f, y + rowH - 5f, paint)
-
-            y += rowH
-        }
-        return y
-    }
-
-    private fun drawSummary(
-        canvas: Canvas,
-        state: AppState,
-        entries: List<WorkEntry>,
-        expWithCode: List<Pair<Expense, String>>,
-        top: Float
-    ): Float {
-        val boxH = 88f
-        paint.style = Paint.Style.FILL
-        paint.color = lightBg
-        canvas.drawRect(MARGIN, top, PW - MARGIN, top + boxH, paint)
-        paint.style = Paint.Style.STROKE
-        paint.color = border
-        paint.strokeWidth = 1f
-        canvas.drawRect(MARGIN, top, PW - MARGIN, top + boxH, paint)
-
-        var y = top + 14f
-        boldPaint.color = primary
-        boldPaint.textSize = 8f
-        boldPaint.textAlign = Paint.Align.LEFT
-        canvas.drawText("Uren per medewerker:", MARGIN + 8f, y, boldPaint)
-        y += 11f
-
+        canvas.drawText("Weeknummer:", rightX, top + 26f, boldPaint)
         paint.color = textDark
-        paint.textSize = 8f
-        val workerHours = mutableMapOf<String, Double>()
-        for (e in entries) {
-            workerHours[e.worker] = (workerHours[e.worker] ?: 0.0) + e.hours()
-        }
-        for ((w, h) in workerHours) {
-            canvas.drawText("• $w: ${fmt(h)} uur", MARGIN + 12f, y, paint)
-            y += 10f
-        }
-        val totalH = workerHours.values.sum()
-        val totalCost = expWithCode.sumOf { it.first.amount }
+        paint.textSize = 9f
+        canvas.drawText("$week ($year)", rightX + 85f, top + 26f, paint)
 
-        val rightColX = MARGIN + 280f
+        // Proje
         boldPaint.color = primary
-        boldPaint.textSize = 8f
-        boldPaint.textAlign = Paint.Align.LEFT
-        canvas.drawText("Klantakkoord / Handtekening:", rightColX, top + 14f, boldPaint)
-
-        y = top + boxH - 24f
-        paint.color = Color.parseColor("#94A3B8")
-        paint.strokeWidth = 1f
-        canvas.drawLine(rightColX, y, PW - MARGIN - 20f, y, paint)
-
-        paint.color = primary
-        boldPaint.color = primary
-        boldPaint.textSize = 8.5f
-        boldPaint.textAlign = Paint.Align.LEFT
-        canvas.drawText("Totale uren: ${fmt(totalH)} uur", MARGIN + 8f, top + boxH - 20f, boldPaint)
-        canvas.drawText("Totale kosten: €%.2f".format(totalCost), MARGIN + 8f, top + boxH - 8f, boldPaint)
-
-        return top + boxH
-    }
-
-    private fun drawAttachmentsHeader(canvas: Canvas, chunkIdx: Int, top: Float): Float {
-        val title = if (chunkIdx == 0) "Bijlagen / Bonnetjes:" else "Bijlagen / Bonnetjes (Vervolg):"
-        boldPaint.color = accent
-        boldPaint.textSize = 11f
-        boldPaint.textAlign = Paint.Align.LEFT
-        canvas.drawText(title, MARGIN, top + 12f, boldPaint)
-        return top + 12f
-    }
-
-    private fun drawImageGrid(canvas: Canvas, items: List<Pair<Expense, String>>, top: Float) {
-        val ctx = admContextHolder ?: return
-        val cellW = (PW - 2 * MARGIN) / 2f
-        val cellH = 360f
-        for ((i, pair) in items.withIndex()) {
-            val (e, code) = pair
-            val col = i % 2
-            val row = i / 2
-            val x = MARGIN + col * cellW
-            val y = top + row * cellH
-
-            paint.style = Paint.Style.STROKE
-            paint.color = border
-            paint.strokeWidth = 0.8f
-            canvas.drawRect(x, y, x + cellW, y + cellH, paint)
-
-            boldPaint.color = primary
-            boldPaint.textSize = 8f
-            boldPaint.textAlign = Paint.Align.LEFT
-            val dayNl = listOf("Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag")
-            canvas.drawText("$code - ${e.category} (€%.2f)".format(e.amount), x + 6f, y + 14f, boldPaint)
-            paint.color = textDark
-            paint.textSize = 7.5f
-            canvas.drawText(dayNl[e.day], x + 6f, y + 26f, paint)
-
-            val file = File(receiptsDir(ctx), e.image)
-            if (file.exists()) {
-                val bmp = loadScaled(file, cellW.toInt() - 20, cellH.toInt() - 50)
-                if (bmp != null) {
-                    val imgW = bmp.width.toFloat()
-                    val imgH = bmp.height.toFloat()
-                    val maxW = cellW - 20f
-                    val maxH = cellH - 50f
-                    val scale = minOf(maxW / imgW, maxH / imgH, 1f)
-                    val drawW = imgW * scale
-                    val drawH = imgH * scale
-                    val imgX = x + (cellW - drawW) / 2f
-                    val imgY = y + 32f + (maxH - drawH) / 2f
-                    canvas.drawBitmap(bmp, null, RectF(imgX, imgY, imgX + drawW, imgY + drawH), null)
-                }
-            }
-        }
-    }
-
-    private fun loadLogo(path: String): Bitmap? {
-        if (path.isBlank()) return null
-        val f = File(path)
-        if (!f.exists()) return null
-        return try { BitmapFactory.decodeFile(f.absolutePath) } catch (e: Exception) { null }
-    }
-
-    private fun loadScaled(file: File, maxW: Int, maxH: Int): Bitmap? {
-        return try {
-            val b = BitmapFactory.Options()
-            b.inJustDecodeBounds = true
-            BitmapFactory.decodeFile(file.absolutePath, b)
-            var sample = 1
-            while (b.outWidth / sample > maxW || b.outHeight / sample > maxH) sample *= 2
-            val o = BitmapFactory.Options()
-            o.inSampleSize = sample
-            BitmapFactory.decodeFile(file.absolutePath, o)
-        } catch (e: Exception) { null }
-    }
-}
+        canvas.drawText("Project:", rightX, top + 52f, boldPaint)
+        
+        // Uzun proje isimleri taşmasın diye kırpma
+        paint.color = textDark
+        val projectText = projectLabel
+        val maxWidth = PW - MARGIN - (rightX + 85f) - 5f
+        val fittedText = fitText(projectText, paint, maxWidth)
+        canvas.drawText
