@@ -294,88 +294,18 @@ fun WerkbonScreen(state: AppState) {
                     setEntries(entries + WorkEntry(d, projects[0], w, t[0], t[1], t[2]))
                 }) { Text("+ Kayıt ekle") }
             }
-     }
-             // ====== PDF OLUŞTURMA BÖLÜMÜ ======
+        }
+
+        // ====== PDF OLUŞTURMA BÖLÜMÜ ======
         Spacer(Modifier.height(20.dp))
-        Title("Werkbon PDF")
-        
+        Text("Werkbon PDF", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+
         val pdfItems = projects.filter { pLabel ->
             val hasEntries = entries.any { it.project == pLabel }
             val hasExpenses = ExpenseStore.load(ctx)[key]?.any { it.project == pLabel } == true
             hasEntries || hasExpenses
         }
-        
-        if (pdfItems.isEmpty()) {
-            Text("Bu hafta için kayıtlı proje yok.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        } else {
-            pdfItems.forEach { pLabel ->
-                OutlinedButton(
-                    onClick = {
-                        PdfMaker.admContextHolder = ctx
-                        val expList = ExpenseStore.load(ctx)[key] ?: emptyList()
-                        val result = PdfMaker.makePdf(
-                            ctx = ctx,
-                            state = state,
-                            projectLabel = pLabel,
-                            weekEntries = entries,
-                            weekExpenses = expList,
-                            year = year,
-                            week = week
-                        )
-                        sharePdf(ctx, result.file)
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("📄 PDF: $pLabel")
-                }
-                Spacer(Modifier.height(6.dp))
-            }
-        }
-                // ====== PDF OLUŞTURMA BÖLÜMÜ ======
-        Spacer(Modifier.height(20.dp))
-        Title("Werkbon PDF")
-        
-        val pdfItems = projects.filter { pLabel ->
-            val hasEntries = entries.any { it.project == pLabel }
-            val hasExpenses = ExpenseStore.load(ctx)[key]?.any { it.project == pLabel } == true
-            hasEntries || hasExpenses
-        }
-        
-        if (pdfItems.isEmpty()) {
-            Text("Bu hafta için kayıtlı proje yok.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        } else {
-            pdfItems.forEach { pLabel ->
-                OutlinedButton(
-                    onClick = {
-                        PdfMaker.admContextHolder = ctx
-                        val expList = ExpenseStore.load(ctx)[key] ?: emptyList()
-                        val result = PdfMaker.makePdf(
-                            ctx = ctx,
-                            state = state,
-                            projectLabel = pLabel,
-                            weekEntries = entries,
-                            weekExpenses = expList,
-                            year = year,
-                            week = week
-                        )
-                        sharePdf(ctx, result.file)
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("📄 PDF: $pLabel")
-                }
-                Spacer(Modifier.height(6.dp))
-            }
-        }
-            Spacer(Modifier.height(20.dp))
-        Title("Werkbon PDF")
-        
-        val pdfItems = projects.filter { pLabel ->
-            val hasEntries = entries.any { it.project == pLabel }
-            val hasExpenses = ExpenseStore.load(ctx)[key]?.any { it.project == pLabel } == true
-            hasEntries || hasExpenses
-        }
-        
+
         if (pdfItems.isEmpty()) {
             Text("Bu hafta için kayıtlı proje yok.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         } else {
@@ -406,5 +336,23 @@ fun WerkbonScreen(state: AppState) {
 
         ExpensesSection(state, key)
         Spacer(Modifier.height(24.dp))
+    }
+}
+
+fun sharePdf(ctx: android.content.Context, file: java.io.File) {
+    try {
+        val uri = androidx.core.content.FileProvider.getUriForFile(
+            ctx, "${ctx.packageName}.fileprovider", file
+        )
+        val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+            type = "application/pdf"
+            putExtra(android.content.Intent.EXTRA_STREAM, uri)
+            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        ctx.startActivity(
+            android.content.Intent.createChooser(intent, "PDF Paylaş")
+        )
+    } catch (e: Exception) {
+        android.widget.Toast.makeText(ctx, "Hata: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
     }
 }
