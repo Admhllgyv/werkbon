@@ -14,6 +14,7 @@ data class AppState(
     val compEmail: String,
     val compGsm: String,
     val compBtw: String,
+    val compLogoPath: String,        // YENİ — logo dosya yolu
     val workers: List<Worker>,
     val projects: List<Project>,
     val categories: List<String>
@@ -28,6 +29,7 @@ object Store {
         compEmail = "admtechnics2018@gmail.com",
         compGsm = "0467752557",
         compBtw = "0707743276",
+        compLogoPath = "",
         workers = listOf(Worker("Adem", 25.0), Worker("Melih", 20.0)),
         projects = listOf(
             Project("E260001", "Kruidvat Diepenbeek"),
@@ -43,11 +45,7 @@ object Store {
     fun load(ctx: Context): AppState {
         val f = File(ctx.filesDir, FILE_NAME)
         if (!f.exists()) return defaults()
-        return try {
-            parse(JSONObject(f.readText()))
-        } catch (e: Exception) {
-            defaults()
-        }
+        return try { parse(JSONObject(f.readText())) } catch (e: Exception) { defaults() }
     }
 
     fun save(ctx: Context, s: AppState) {
@@ -61,15 +59,12 @@ object Store {
         o.put("compEmail", s.compEmail)
         o.put("compGsm", s.compGsm)
         o.put("compBtw", s.compBtw)
+        o.put("compLogoPath", s.compLogoPath)   // YENİ
         val wa = JSONArray()
-        for (w in s.workers) {
-            wa.put(JSONObject().put("name", w.name).put("rate", w.rate))
-        }
+        for (w in s.workers) wa.put(JSONObject().put("name", w.name).put("rate", w.rate))
         o.put("workers", wa)
         val pa = JSONArray()
-        for (p in s.projects) {
-            pa.put(JSONObject().put("code", p.code).put("name", p.name))
-        }
+        for (p in s.projects) pa.put(JSONObject().put("code", p.code).put("name", p.name))
         o.put("projects", pa)
         val ca = JSONArray()
         for (c in s.categories) ca.put(c)
@@ -100,6 +95,7 @@ object Store {
             compEmail = o.optString("compEmail", d.compEmail),
             compGsm = o.optString("compGsm", d.compGsm),
             compBtw = o.optString("compBtw", d.compBtw),
+            compLogoPath = o.optString("compLogoPath", ""),   // YENİ
             workers = workers,
             projects = projects,
             categories = cats
