@@ -6,7 +6,6 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
@@ -15,8 +14,8 @@ import java.io.FileOutputStream
 
 object PdfMaker {
 
-    private const val PW = 595      // A4 genişlik (pt)
-    private const val PH = 842      // A4 yükseklik (pt)
+    private const val PW = 595
+    private const val PH = 842
     private const val MARGIN = 28f
 
     private val primary = Color.parseColor("#0F172A")
@@ -36,10 +35,9 @@ object PdfMaker {
 
     data class PdfResult(val file: File, val displayName: String)
 
-    /**
-     * Bir proje için PDF üretir.
-     * @param projeStream Streamlit'teki gibi "E260001 - Kruidvat Diepenbeek" formatında
-     */
+    @Volatile
+    var admContextHolder: Context? = null
+
     fun makePdf(
         ctx: Context,
         state: AppState,
@@ -49,14 +47,12 @@ object PdfMaker {
         year: Int,
         week: Int
     ): PdfResult {
-        // Sadece bu projeye ait kayıtları filtrele
         val projEntries = weekEntries.filter { it.project == projectLabel }
         val projExpenses = weekExpenses.filter { it.project == projectLabel }
 
         val doc = PdfDocument()
         var pageNum = 1
 
-        // ---- SAYFA 1: Header + Tablo + Özet ----
         var page = doc.startPage(PdfDocument.PageInfo.Builder(PW, PH, pageNum++).create())
         var canvas = page.canvas
 
@@ -64,8 +60,6 @@ object PdfMaker {
         y = drawHeader(canvas, state, projectLabel, year, week, y)
         y += 14f
 
-        // Çalışan tablosu
-        val dayNamesTr = listOf("Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma")
         val dayNamesNl = listOf("Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag")
         val dayOrder = mapOf(0 to 1, 1 to 2, 2 to 3, 3 to 4, 4 to 5)
 
@@ -73,24 +67,20 @@ object PdfMaker {
             compareBy({ it.worker }, { dayOrder[it.day] ?: 9 })
         )
 
-        y = drawWorkerTable(canvas, state, sorted, dayNamesTr, dayNamesNl, year, week, y)
+        y = drawWorkerTable(canvas, state, sorted, dayNamesNl, year, week, y)
         y += 14f
 
-        // Gider tablosu
         val sortedExp = projExpenses.sortedBy { dayOrder[it.day] ?: 9 }
-        // Doc numarası ver
         val expWithCode = sortedExp.mapIndexed { idx, e -> e to "Doc ${idx + 1}" }
         if (expWithCode.isNotEmpty()) {
-            y = drawExpenseTable(canvas, expWithCode, dayNamesTr, year, week, y)
+            y = drawExpenseTable(canvas, expWithCode, year, week, y)
             y += 14f
         }
 
-        // Özet + İmza
         y = drawSummary(canvas, state, sorted, expWithCode, y)
 
         doc.finishPage(page)
 
-        // ---- SAYFA 2+: Fiş görselleri (grid) ----
         val withImg = expWithCode.filter { it.first.image.isNotEmpty() }
         if (withImg.isNotEmpty()) {
             val chunks = withImg.chunked(4)
@@ -105,7 +95,6 @@ object PdfMaker {
             }
         }
 
-        // Dosyayı kaydet
         val outDir = File(ctx.filesDir, "pdfs").apply { mkdirs() }
         val cleanProj = projectLabel.replace(" ", "_").replace("(", "").replace(")", "")
         val fname = "Werkbon_W${week}${year}_${cleanProj}.pdf"
@@ -115,8 +104,6 @@ object PdfMaker {
 
         return PdfResult(out, fname)
     }
-
-    // ------------------- YARDIMCILAR -------------------
 
     private fun drawHeader(canvas: Canvas, state: AppState, projectLabel: String, year: Int, week: Int, top: Float): Float {
         val boxH = 78f
@@ -131,7 +118,6 @@ object PdfMaker {
         var x = MARGIN + 10f
         var yLine = top + 16f
 
-        // Logo (varsa)
         val logoBmp = loadLogo(state.compLogoPath)
         if (logoBmp != null) {
             val logoSize = 52f
@@ -139,10 +125,10 @@ object PdfMaker {
             x += logoSize + 10f
         }
 
-        // Firma bilgileri
         paint.color = primary
         boldPaint.color = primary
         boldPaint.textSize = 11f
+        boldPaint.textAlign = Paint.Align.LEFT
         canvas.drawText(state.compName, x, yLine, boldPaint)
         yLine += 12f
         paint.color = Color.parseColor("#475569")
@@ -151,15 +137,13 @@ object PdfMaker {
         canvas.drawText("E-mail: ${state.compEmail} | GSM: ${state.compGsm}", x, yLine, paint); yLine += 10f
         canvas.drawText("BTW: ${state.compBtw}", x, yLine, paint)
 
-        // Sağ taraf: hafta + proje
         val rightX = PW - MARGIN - 160f
-        paint.color = textDark
-        paint.textSize = 8f
-        boldPaint.textSize = 8f
         boldPaint.color = primary
+        boldPaint.textSize = 8f
         canvas.drawText("Weeknummer:", rightX, top + 20f, boldPaint)
         canvas.drawText("Project:", rightX, top + 42f, boldPaint)
         paint.color = textDark
+        paint.textSize = 8f
         canvas.drawText("$week ($year)", rightX + 75f, top + 20f, paint)
         canvas.drawText(projectLabel, rightX + 75f, top + 42f, paint)
 
@@ -170,22 +154,19 @@ object PdfMaker {
         canvas: Canvas,
         state: AppState,
         entries: List<WorkEntry>,
-        dayTr: List<String>,
         dayNl: List<String>,
         year: Int,
         week: Int,
         top: Float
     ): Float {
-        val cols = floatArrayOf(95f, 115f, 55f, 55f, 55f, 60f) // toplam ~435 + margin
+        val cols = floatArrayOf(95f, 115f, 55f, 55f, 55f, 60f)
         val rowH = 16f
         val x0 = MARGIN
         var y = top
 
-        // Başlık
         paint.style = Paint.Style.FILL
         paint.color = primary
         canvas.drawRect(x0, y, PW - MARGIN, y + rowH, paint)
-        paint.color = white
         boldPaint.color = white
         boldPaint.textSize = 8f
         boldPaint.textAlign = Paint.Align.CENTER
@@ -198,7 +179,6 @@ object PdfMaker {
         }
         y += rowH
 
-        // Satırlar
         val mon = mondayOf(year, week)
         for ((idx, e) in entries.withIndex()) {
             paint.style = Paint.Style.FILL
@@ -215,7 +195,6 @@ object PdfMaker {
 
             paint.color = textDark
             paint.textSize = 7.5f
-            paint.textAlign = Paint.Align.LEFT
             var xx = x0 + 4f
 
             boldPaint.color = textDark
@@ -229,7 +208,6 @@ object PdfMaker {
             canvas.drawText(hm(e.start), xx + cols[2] / 2f, y + rowH - 5f, paint); xx += cols[2]
             canvas.drawText(hm(e.pause), xx + cols[3] / 2f, y + rowH - 5f, paint); xx += cols[3]
             canvas.drawText(hm(e.end), xx + cols[4] / 2f, y + rowH - 5f, paint); xx += cols[4]
-            paint.textAlign = Paint.Align.CENTER
             canvas.drawText(fmt(e.hours()), xx + cols[5] / 2f, y + rowH - 5f, paint)
 
             y += rowH
@@ -241,7 +219,6 @@ object PdfMaker {
     private fun drawExpenseTable(
         canvas: Canvas,
         items: List<Pair<Expense, String>>,
-        dayTr: List<String>,
         year: Int,
         week: Int,
         top: Float
@@ -250,14 +227,12 @@ object PdfMaker {
         val rowH = 16f
         var y = top
 
-        // Alt başlık
         boldPaint.color = accent
         boldPaint.textSize = 9f
         boldPaint.textAlign = Paint.Align.LEFT
         canvas.drawText("Materialen en Kosten:", MARGIN, y, boldPaint)
         y += 6f
 
-        // Başlık satırı
         paint.style = Paint.Style.FILL
         paint.color = altBg
         canvas.drawRect(MARGIN, y, PW - MARGIN, y + rowH, paint)
@@ -266,7 +241,6 @@ object PdfMaker {
         paint.strokeWidth = 0.5f
         canvas.drawRect(MARGIN, y, PW - MARGIN, y + rowH, paint)
 
-        paint.color = primary
         boldPaint.color = primary
         boldPaint.textSize = 8f
         boldPaint.textAlign = Paint.Align.LEFT
@@ -294,6 +268,7 @@ object PdfMaker {
             var xx = MARGIN + 4f
             boldPaint.color = textDark
             boldPaint.textSize = 7.5f
+            boldPaint.textAlign = Paint.Align.LEFT
             canvas.drawText(code, xx, y + rowH - 5f, boldPaint); xx += cols[0]
 
             val d = mon.plusDays(e.day.toLong())
@@ -323,7 +298,6 @@ object PdfMaker {
         paint.strokeWidth = 1f
         canvas.drawRect(MARGIN, top, PW - MARGIN, top + boxH, paint)
 
-        // Sol: özet
         var y = top + 14f
         boldPaint.color = primary
         boldPaint.textSize = 8f
@@ -344,19 +318,21 @@ object PdfMaker {
         val totalH = workerHours.values.sum()
         val totalCost = expWithCode.sumOf { it.first.amount }
 
-        y = top + 14f
         val rightColX = MARGIN + 280f
         boldPaint.color = primary
-        canvas.drawText("Klantakkoord / Handtekening:", rightColX, y, boldPaint)
-        // İmza çizgisi
+        boldPaint.textSize = 8f
+        boldPaint.textAlign = Paint.Align.LEFT
+        canvas.drawText("Klantakkoord / Handtekening:", rightColX, top + 14f, boldPaint)
+
         y = top + boxH - 24f
         paint.color = Color.parseColor("#94A3B8")
         paint.strokeWidth = 1f
         canvas.drawLine(rightColX, y, PW - MARGIN - 20f, y, paint)
 
-        // Alt: total
         paint.color = primary
+        boldPaint.color = primary
         boldPaint.textSize = 8.5f
+        boldPaint.textAlign = Paint.Align.LEFT
         canvas.drawText("Totale uren: ${fmt(totalH)} uur", MARGIN + 8f, top + boxH - 20f, boldPaint)
         canvas.drawText("Totale kosten: €%.2f".format(totalCost), MARGIN + 8f, top + boxH - 8f, boldPaint)
 
@@ -383,13 +359,11 @@ object PdfMaker {
             val x = MARGIN + col * cellW
             val y = top + row * cellH
 
-            // çerçeve
             paint.style = Paint.Style.STROKE
             paint.color = border
             paint.strokeWidth = 0.8f
             canvas.drawRect(x, y, x + cellW, y + cellH, paint)
 
-            // başlık
             boldPaint.color = primary
             boldPaint.textSize = 8f
             boldPaint.textAlign = Paint.Align.LEFT
@@ -399,7 +373,6 @@ object PdfMaker {
             paint.textSize = 7.5f
             canvas.drawText(dayNl[e.day], x + 6f, y + 26f, paint)
 
-            // Görsel
             val file = File(receiptsDir(ctx), e.image)
             if (file.exists()) {
                 val bmp = loadScaled(file, cellW.toInt() - 20, cellH.toInt() - 50)
@@ -418,8 +391,6 @@ object PdfMaker {
             }
         }
     }
-
-    // ------------------- YARDIMCI FONKSİYONLAR -------------------
 
     private fun loadLogo(path: String): Bitmap? {
         if (path.isBlank()) return null
@@ -440,8 +411,4 @@ object PdfMaker {
             BitmapFactory.decodeFile(file.absolutePath, o)
         } catch (e: Exception) { null }
     }
-
-    // Context referansı (grid'de fiş okumak için)
-    @Volatile
-    var admContextHolder: Context? = null
 }
