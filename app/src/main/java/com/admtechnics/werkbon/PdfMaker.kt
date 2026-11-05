@@ -5,9 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.Matrix
 import android.graphics.Paint
-import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
@@ -81,7 +79,6 @@ object PdfMaker {
 
         val withImg = expWithCode.filter { it.first.image.isNotEmpty() }
         if (withImg.isNotEmpty()) {
-            // Her sayfada 4 resim (2x2 formatında)
             val chunks = withImg.chunked(4)
             for ((chunkIdx, chunk) in chunks.withIndex()) {
                 val p = doc.startPage(PdfDocument.PageInfo.Builder(PW.toInt(), PH.toInt(), pageNum++).create())
@@ -346,7 +343,7 @@ object PdfMaker {
         return top + 14f
     }
 
-    // YENİ: Resimleri kutunun içini tam dolduracak ve maksimum netlikte çizecek
+    // RESİMLERİ TAŞMADAN MAKSİMUM BÜYÜKLÜKTE SIĞDIRAN FONKSİYON
     private fun drawImageGrid(canvas: Canvas, items: List<Pair<Expense, String>>, top: Float) {
         val ctx = admContextHolder ?: return
         val cellW = (PW - 2 * MARGIN) / 2f
@@ -359,37 +356,35 @@ object PdfMaker {
             val x = MARGIN + col * cellW
             val y = top + row * cellH
 
-            // Dış çerçeve
+            // Hücre Çerçevesi
+            drawBackground(canvas, RectF(x, y, x + cellW, y + cellH), white) // Arka plan beyaz
             drawBackground(canvas, RectF(x, y, x + cellW, y + cellH), border, isStroke = true, strokeWidth = 0.8f)
 
-            // Başlık
+            // Başlık (Gün ve Doc kodu)
             val dayNl = listOf("Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag")
             drawTextBold(canvas, "$code - ${e.category} (€%.2f)".format(e.amount), x + 6f, y + 16f, 8.5f)
-            drawTextNormal(canvas, dayNl[e.day], x + 6f, y + 28f, 8f)
+            drawTextNormal(canvas, dayNl[e.day], x + 6f, y + 28f, 8f, textMuted)
+
+            // Resim Alanı (Başlık kısmının altında kalan boşluk)
+            val imgArea = RectF(x + 5f, y + 34f, x + cellW - 5f, y + cellH - 5f)
 
             val file = File(receiptsDir(ctx), e.image)
             if (file.exists()) {
-                // Resmi ORIJINAL boyutunda yükle (küçültme yok)
                 val bmp = BitmapFactory.decodeFile(file.absolutePath)
                 if (bmp != null) {
-                    // Resim alanı (başlık kısmını çıkar)
-                    val imgArea = RectF(x + 5f, y + 34f, x + cellW - 5f, y + cellH - 5f)
-                    
-                    // Resmi alana "Cover" mantığıyla sığdır (oranını bozmadan alanı maksimum doldur)
-                    val scale = maxOf(imgArea.width() / bmp.width, imgArea.height() / bmp.height)
+                    // "Fit" (Sığdır) mantığı: Oranı bozmadan kutuya en iyi şekilde sığdır
+                    val scale = minOf(imgArea.width() / bmp.width, imgArea.height() / bmp.height)
                     val drawW = bmp.width * scale
                     val drawH = bmp.height * scale
+                    
+                    // Ortala
                     val imgX = imgArea.left + (imgArea.width() - drawW) / 2f
                     val imgY = imgArea.top + (imgArea.height() - drawH) / 2f
                     
                     val destRect = RectF(imgX, imgY, imgX + drawW, imgY + drawH)
                     
-                    // Resmi çiz
                     val paint = Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG)
-                    paint.isFilterBitmap = true
                     canvas.drawBitmap(bmp, null, destRect, paint)
-                    
-                    // Belleği temizle
                     bmp.recycle()
                 }
             }
