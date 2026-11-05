@@ -1,7 +1,15 @@
 package com.admtechnics.werkbon
 
+import android.app.AlertDialog
 import android.app.TimePickerDialog
+import android.content.ContentValues
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.FileProvider
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -334,7 +343,8 @@ fun WerkbonScreen(state: AppState) {
                             year = year,
                             week = week
                         )
-                        sharePdf(ctx, result.file)
+                        // YENİ: Seçenekli Menü
+                        showPdfOptions(ctx, result.file)
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -349,20 +359,77 @@ fun WerkbonScreen(state: AppState) {
     }
 }
 
-fun sharePdf(ctx: android.content.Context, file: java.io.File) {
+// ===== YENİ EKLENEN PDF FONKSİYONLARI =====
+
+fun showPdfOptions(ctx: Context, file: File) {
+    val options = arrayOf("👁️ Görüntüle", "📥 İndir (Kaydet)", "📤 Paylaş")
+    AlertDialog.Builder(ctx)
+        .setTitle("PDF İşlemleri")
+        .setItems(options) { _, which ->
+            when (which) {
+                0 -> viewPdf(ctx, file)
+                1 -> savePdfToDownloads(ctx, file)
+                2 -> sharePdf(ctx, file)
+            }
+        }
+        .show()
+}
+
+fun viewPdf(ctx: Context, file: File) {
     try {
-        val uri = androidx.core.content.FileProvider.getUriForFile(
+        val uri = FileProvider.getUriForFile(
             ctx, "${ctx.packageName}.fileprovider", file
         )
-        val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-            type = "application/pdf"
-            putExtra(android.content.Intent.EXTRA_STREAM, uri)
-            addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, "application/pdf")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY)
         }
-        ctx.startActivity(
-            android.content.Intent.createChooser(intent, "PDF Paylaş")
-        )
+        ctx.startActivity(intent)
     } catch (e: Exception) {
-        android.widget.Toast.makeText(ctx, "Hata: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+        Toast.makeText(ctx, "PDF açıcı bulunamadı.", Toast.LENGTH_SHORT).show()
+    }
+}
+
+fun savePdfToDownloads(ctx: Context, file: File) {
+    try {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val resolver = ctx.contentResolver
+            val contentValues = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, file.name)
+                put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
+                put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+            }
+            val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+            if (uri != null) {
+                resolver.openOutputStream(uri)?.use { out ->
+                    file.inputStream().use { input -> input.copyTo(out) }
+                }
+                Toast.makeText(ctx, "PDF İndirilenler klasörüne kaydedildi.", Toast.LENGTH_LONG).show()
+            }
+        } else {
+            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            val destFile = File(downloadsDir, file.name)
+            file.copyTo(destFile, overwrite = true)
+            Toast.makeText(ctx, "PDF İndirilenler klasörüne kaydedildi.", Toast.LENGTH_LONG).show()
+        }
+    } catch (e: Exception) {
+        Toast.makeText(ctx, "Kaydetme hatası: ${e.message}", Toast.LENGTH_LONG).show()
+    }
+}
+
+fun sharePdf(ctx: Context, file: File) {
+    try {
+        val uri = FileProvider.getUriForFile(
+            ctx, "${ctx.packageName}.fileprovider", file
+        )
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "application/pdf"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        ctx.startActivity(Intent.createChooser(intent, "PDF Paylaş"))
+    } catch (e: Exception) {
+        Toast.makeText(ctx, "Hata: ${e.message}", Toast.LENGTH_LONG).show()
     }
 }
