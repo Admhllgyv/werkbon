@@ -21,8 +21,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
@@ -160,7 +162,11 @@ fun Picker(
 ) {
     var open by remember { mutableStateOf(false) }
     Box(modifier) {
-        OutlinedButton(onClick = { open = true }, modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(
+            onClick = { open = true }, 
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(8.dp)
+        ) {
             Text("$label: $value", maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
@@ -183,10 +189,11 @@ fun TimeButton(label: String, minutes: Int, onPicked: (Int) -> Unit, modifier: M
     OutlinedButton(
         onClick = { pickTime(ctx, minutes, onPicked) },
         modifier = modifier,
+        shape = RoundedCornerShape(8.dp),
         contentPadding = PaddingValues(horizontal = 4.dp)
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(label, fontSize = 11.sp)
+            Text(label, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(hm(minutes), fontWeight = FontWeight.Bold)
         }
     }
@@ -200,23 +207,36 @@ fun EntryCard(
     onChange: (WorkEntry) -> Unit,
     onDelete: () -> Unit
 ) {
-    Card(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-        Column(Modifier.padding(8.dp)) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)
+    ) {
+        Column(Modifier.padding(12.dp)) {
             Picker("Proje", e.project, projects, { p -> onChange(e.copy(project = p)) }, Modifier.fillMaxWidth())
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(8.dp))
             Picker("Çalışan", e.worker, workers, { w ->
                 val t = defaultTimes(w)
                 onChange(e.copy(worker = w, start = t[0], pause = t[1], end = t[2]))
             }, Modifier.fillMaxWidth())
-            Spacer(Modifier.height(4.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Spacer(Modifier.height(12.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TimeButton("Başlangıç", e.start, { v -> onChange(e.copy(start = v)) }, Modifier.weight(1f))
                 TimeButton("Mola", e.pause, { v -> onChange(e.copy(pause = v)) }, Modifier.weight(1f))
                 TimeButton("Bitiş", e.end, { v -> onChange(e.copy(end = v)) }, Modifier.weight(1f))
             }
+            Spacer(Modifier.height(8.dp))
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Net: ${fmt(e.hours())} saat", Modifier.weight(1f), fontWeight = FontWeight.Bold)
-                TextButton(onClick = onDelete) { Text("Sil") }
+                Text(
+                    "Net: ${fmt(e.hours())} saat", 
+                    Modifier.weight(1f), 
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                TextButton(onClick = onDelete) { 
+                    Text("Sil", color = MaterialTheme.colorScheme.error) 
+                }
             }
         }
     }
@@ -252,25 +272,34 @@ fun WerkbonScreen(state: AppState) {
     }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = { shift(-1L) }) { Text("◀") }
-            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    "$year - Hafta $week",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text("${mon.format(dateFmt)} – ${mon.plusDays(4).format(dateFmt)}")
+        // Hafta Seçici Kartı
+        Card(
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+        ) {
+            Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = { shift(-1L) }) { Text("◀", fontSize = 18.sp) }
+                Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        "$year - Hafta $week",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text("${mon.format(dateFmt)} – ${mon.plusDays(4).format(dateFmt)}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                TextButton(onClick = { shift(1L) }) { Text("▶", fontSize = 18.sp) }
             }
-            TextButton(onClick = { shift(1L) }) { Text("▶") }
         }
 
         val total = r2(entries.map { it.hours() }.sum())
-        Text("Hafta toplamı: ${fmt(total)} saat", fontWeight = FontWeight.Bold)
+        Text("Hafta toplamı: ${fmt(total)} saat", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary)
+        Spacer(Modifier.height(8.dp))
 
         if (projects.isEmpty() || workers.isEmpty()) {
-            Spacer(Modifier.height(8.dp))
-            Text("Önce Projeler ve Ayarlar sekmelerinden en az bir proje ve bir çalışan ekleyin.")
+            Text("Önce Projeler ve Ayarlar sekmelerinden en az bir proje ve bir çalışan ekleyin.", color = MaterialTheme.colorScheme.error)
         }
 
         // GÜNLÜK DÖNGÜ BAŞLANGICI
@@ -280,10 +309,19 @@ fun WerkbonScreen(state: AppState) {
             val dayTotal = r2(dayEntries.map { it.value.hours() }.sum())
             
             Spacer(Modifier.height(16.dp))
-            Text("${dayTr[d]} (${dayNl[d]}) - ${date.format(dateFmt)}", fontWeight = FontWeight.Bold, fontSize = 15.sp)
             
-            if (dayEntries.isNotEmpty()) {
-                Text("Gün toplamı: ${fmt(dayTotal)} saat")
+            // Gün Başlığı (Şık Kart Tasarımı)
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(Modifier.padding(10.dp)) {
+                    Text("${dayTr[d]} (${dayNl[d]}) - ${date.format(dateFmt)}", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MaterialTheme.colorScheme.primary)
+                    if (dayEntries.isNotEmpty()) {
+                        Text("Gün toplamı: ${fmt(dayTotal)} saat", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
             }
             
             for (iv in dayEntries) {
@@ -306,19 +344,21 @@ fun WerkbonScreen(state: AppState) {
                     val w = workers[0]
                     val t = defaultTimes(w)
                     setEntries(entries + WorkEntry(d, projects[0], w, t[0], t[1], t[2]))
-                }) { Text("+ Kayıt ekle") }
+                }) { 
+                    Text("+ Kayıt ekle", fontWeight = FontWeight.Bold) 
+                }
             }
 
             // HER GÜNÜN KENDİ FİŞ BÖLÜMÜ
             Spacer(Modifier.height(8.dp))
-            Text("💶 Fiş / Gider", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            Text("💶 Fiş / Gider", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.secondary)
             ExpensesSection(state, key, day = d)
         }
         // GÜNLÜK DÖNGÜ BİTİŞİ
 
         // ====== PDF OLUŞTURMA BÖLÜMÜ ======
         Spacer(Modifier.height(30.dp))
-        Text("Werkbon PDF", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+        Text("Werkbon PDF", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.primary)
 
         val pdfItems = projects.filter { pLabel ->
             val hasEntries = entries.any { it.project == pLabel }
@@ -343,14 +383,13 @@ fun WerkbonScreen(state: AppState) {
                             year = year,
                             week = week
                         )
-                        // YENİ: Seçenekli Menü
                         showPdfOptions(ctx, result.file)
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    shape = RoundedCornerShape(10.dp)
                 ) {
-                    Text("📄 PDF: $pLabel")
+                    Text("📄 PDF: $pLabel", fontWeight = FontWeight.Bold)
                 }
-                Spacer(Modifier.height(6.dp))
             }
         }
         // ====== PDF BÖLÜMÜ SONU ======
@@ -359,7 +398,7 @@ fun WerkbonScreen(state: AppState) {
     }
 }
 
-// ===== YENİ EKLENEN PDF FONKSİYONLARI =====
+// ===== PDF İŞLEMLERİ =====
 
 fun showPdfOptions(ctx: Context, file: File) {
     val options = arrayOf("👁️ Görüntüle", "📥 İndir (Kaydet)", "📤 Paylaş")
