@@ -294,7 +294,8 @@ fun WerkbonScreen(state: AppState) {
                     setEntries(entries + WorkEntry(d, projects[0], w, t[0], t[1], t[2]))
                 }) { Text("+ Kayıt ekle") }
             }
-        }
+     }
+        ExpensesSection(state, key)
         Spacer(Modifier.height(24.dp))
     }
 }
