@@ -79,7 +79,7 @@ object PdfMaker {
 
         val withImg = expWithCode.filter { it.first.image.isNotEmpty() }
         if (withImg.isNotEmpty()) {
-            val chunks = withImg.chunked(4)
+            val chunks = withImg.chunked(4) // Sayfa başına 4 fiş (2x2 grid)
             for ((chunkIdx, chunk) in chunks.withIndex()) {
                 val p = doc.startPage(PdfDocument.PageInfo.Builder(PW.toInt(), PH.toInt(), pageNum++).create())
                 val c = p.canvas
@@ -101,7 +101,6 @@ object PdfMaker {
         return PdfResult(out, fname)
     }
 
-    // --- KUSURSUZ YAZI YAZMA FONKSİYONLARI (Her seferinde yeni Paint oluşturur) ---
     private fun drawTextNormal(canvas: Canvas, text: String, x: Float, y: Float, size: Float = 8f, color: Int = textDark, align: Paint.Align = Paint.Align.LEFT) {
         val p = Paint(Paint.ANTI_ALIAS_FLAG)
         p.color = color
@@ -127,14 +126,12 @@ object PdfMaker {
         p.strokeWidth = strokeWidth
         canvas.drawRect(rect, p)
     }
-    // -----------------------------------------------------------------------------
 
     private fun drawHeader(canvas: Canvas, state: AppState, projectLabel: String, year: Int, week: Int, top: Float): Float {
-        val boxH = 105f // Yüksekliği biraz daha artırdık
+        val boxH = 105f
         drawBackground(canvas, RectF(MARGIN, top, PW - MARGIN, top + boxH), lightBg)
         drawBackground(canvas, RectF(MARGIN, top, PW - MARGIN, top + boxH), accent, isStroke = true, strokeWidth = 2f)
 
-        // SOL TARAF: Logo ve Firma Bilgileri
         var x = MARGIN + 10f
         var yLine = top + 22f
 
@@ -156,18 +153,14 @@ object PdfMaker {
         yLine += 13f
         drawTextNormal(canvas, "BTW: ${state.compBtw}", x, yLine, 8f, textMuted)
 
-        // SAĞ TARAF: Hafta ve Proje
         val rightLabelX = PW - MARGIN - 180f
         val rightValueX = PW - MARGIN - 85f
         
-        // Hafta
         drawTextBold(canvas, "Weeknummer:", rightLabelX, top + 26f, 8.5f)
         drawTextNormal(canvas, "$week ($year)", rightValueX, top + 26f, 8.5f)
 
-        // Proje
         drawTextBold(canvas, "Project:", rightLabelX, top + 52f, 8.5f)
         
-        // Proje adı çok uzunsa alt satıra geçir (Multi-line destek)
         val maxWidth = (PW - MARGIN) - rightValueX - 5f
         val lines = wrapText(projectLabel, maxWidth, 8.5f)
         
@@ -181,7 +174,6 @@ object PdfMaker {
         return top + boxH
     }
 
-    // Uzun yazıları alt satıra bölme fonksiyonu
     private fun wrapText(text: String, maxWidth: Float, textSize: Float): List<String> {
         val p = Paint(Paint.ANTI_ALIAS_FLAG)
         p.textSize = textSize
@@ -319,92 +311,4 @@ object PdfMaker {
         drawTextBold(canvas, "Uren per medewerker:", MARGIN + 10f, y, 8.5f)
         y += 14f
 
-        val workerHours = mutableMapOf<String, Double>()
-        for (e in entries) {
-            workerHours[e.worker] = (workerHours[e.worker] ?: 0.0) + e.hours()
-        }
-        for ((w, h) in workerHours) {
-            drawTextNormal(canvas, "• $w: ${fmt(h)} uur", MARGIN + 14f, y, 8.5f)
-            y += 12f
-        }
-        val totalH = workerHours.values.sum()
-        val totalCost = expWithCode.sumOf { it.first.amount }
-
-        val rightColX = MARGIN + 280f
-        drawTextBold(canvas, "Klantakkoord / Handtekening:", rightColX, top + 18f, 8.5f)
-
-        // İmza çizgisi
-        y = top + boxH - 30f
-        val linePaint = Paint(Paint.ANTI_ALIAS_FLAG)
-        linePaint.color = Color.parseColor("#94A3B8")
-        linePaint.strokeWidth = 1f
-        canvas.drawLine(rightColX, y, PW - MARGIN - 20f, y, linePaint)
-
-        drawTextBold(canvas, "Totale uren: ${fmt(totalH)} uur", MARGIN + 10f, top + boxH - 22f, 9f)
-        drawTextBold(canvas, "Totale kosten: €%.2f".format(totalCost), MARGIN + 10f, top + boxH - 10f, 9f)
-
-        return top + boxH
-    }
-
-    private fun drawAttachmentsHeader(canvas: Canvas, chunkIdx: Int, top: Float): Float {
-        val title = if (chunkIdx == 0) "Bijlagen / Bonnetjes:" else "Bijlagen / Bonnetjes (Vervolg):"
-        drawTextBold(canvas, title, MARGIN, top + 14f, 11f, accent)
-        return top + 14f
-    }
-
-    private fun drawImageGrid(canvas: Canvas, items: List<Pair<Expense, String>>, top: Float) {
-        val ctx = admContextHolder ?: return
-        val cellW = (PW - 2 * MARGIN) / 2f
-        val cellH = 360f
-        for ((i, pair) in items.withIndex()) {
-            val (e, code) = pair
-            val col = i % 2
-            val row = i / 2
-            val x = MARGIN + col * cellW
-            val y = top + row * cellH
-
-            drawBackground(canvas, RectF(x, y, x + cellW, y + cellH), border, isStroke = true, strokeWidth = 0.8f)
-
-            val dayNl = listOf("Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag")
-            drawTextBold(canvas, "$code - ${e.category} (€%.2f)".format(e.amount), x + 6f, y + 16f, 8.5f)
-            drawTextNormal(canvas, dayNl[e.day], x + 6f, y + 28f, 8f)
-
-            val file = File(receiptsDir(ctx), e.image)
-            if (file.exists()) {
-                val bmp = loadScaled(file, cellW.toInt() - 20, cellH.toInt() - 55)
-                if (bmp != null) {
-                    val imgW = bmp.width.toFloat()
-                    val imgH = bmp.height.toFloat()
-                    val maxW = cellW - 20f
-                    val maxH = cellH - 55f
-                    val scale = minOf(maxW / imgW, maxH / imgH, 1f)
-                    val drawW = imgW * scale
-                    val drawH = imgH * scale
-                    val imgX = x + (cellW - drawW) / 2f
-                    val imgY = y + 34f + (maxH - drawH) / 2f
-                    canvas.drawBitmap(bmp, null, RectF(imgX, imgY, imgX + drawW, imgY + drawH), null)
-                }
-            }
-        }
-    }
-
-    private fun loadLogo(path: String): Bitmap? {
-        if (path.isBlank()) return null
-        val f = File(path)
-        if (!f.exists()) return null
-        return try { BitmapFactory.decodeFile(f.absolutePath) } catch (e: Exception) { null }
-    }
-
-    private fun loadScaled(file: File, maxW: Int, maxH: Int): Bitmap? {
-        return try {
-            val b = BitmapFactory.Options()
-            b.inJustDecodeBounds = true
-            BitmapFactory.decodeFile(file.absolutePath, b)
-            var sample = 1
-            while (b.outWidth / sample > maxW || b.outHeight / sample > maxH) sample *= 2
-            val o = BitmapFactory.Options()
-            o.inSampleSize = sample
-            BitmapFactory.decodeFile(file.absolutePath, o)
-        } catch (e: Exception) { null }
-    }
-}
+        val workerHours =
