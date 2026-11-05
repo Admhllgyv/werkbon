@@ -3,7 +3,9 @@ package com.admtechnics.werkbon
 import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,6 +23,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -32,9 +35,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import java.io.File
+import java.io.FileOutputStream
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -135,13 +141,49 @@ fun WorkerRow(w: Worker, canDelete: Boolean, onRate: (Double) -> Unit, onDelete:
 
 @Composable
 fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit) {
+    val ctx = LocalContext.current
     var newWorker by remember { mutableStateOf("") }
     var newCat by remember { mutableStateOf("") }
+
+    // Logo Seçici
+    val logoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) {
+            try {
+                val inputStream = ctx.contentResolver.openInputStream(uri)
+                val logoFile = File(ctx.filesDir, "company_logo.jpg")
+                val outputStream = FileOutputStream(logoFile)
+                inputStream?.copyTo(outputStream)
+                inputStream?.close()
+                outputStream.close()
+                
+                // State'i güncelle
+                onChange(state.copy(compLogoPath = logoFile.absolutePath))
+            } catch (e: Exception) {
+                // Hata yoksay
+            }
+        }
+    }
 
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp)
     ) {
         Title("Firma Bilgileri")
+        
+        // Logo Ekleme Butonu
+        Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            OutlinedButton(onClick = { logoPicker.launch("image/*") }) {
+                Text(if (state.compLogoPath.isEmpty()) "🖼️ Logo Ekle" else "🖼️ Logoyu Değiştir")
+            }
+            if (state.compLogoPath.isNotEmpty()) {
+                Spacer(Modifier.width(8.dp))
+                TextButton(onClick = {
+                    val f = File(state.compLogoPath)
+                    if (f.exists()) f.delete()
+                    onChange(state.copy(compLogoPath = ""))
+                }) { Text("Logoyu Sil", color = MaterialTheme.colorScheme.error) }
+            }
+        }
+
         Field("Firma Adı", state.compName) { onChange(state.copy(compName = it)) }
         Field("Adres", state.compAddress) { onChange(state.copy(compAddress = it)) }
         Field("E-posta", state.compEmail) { onChange(state.copy(compEmail = it)) }
