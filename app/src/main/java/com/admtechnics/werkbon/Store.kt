@@ -14,7 +14,7 @@ data class AppState(
     val compEmail: String,
     val compGsm: String,
     val compBtw: String,
-    val compLogoPath: String,        // YENİ — logo dosya yolu
+    val compLogoPath: String,
     val workers: List<Worker>,
     val projects: List<Project>,
     val categories: List<String>
@@ -59,7 +59,7 @@ object Store {
         o.put("compEmail", s.compEmail)
         o.put("compGsm", s.compGsm)
         o.put("compBtw", s.compBtw)
-        o.put("compLogoPath", s.compLogoPath)   // YENİ
+        o.put("compLogoPath", s.compLogoPath)
         val wa = JSONArray()
         for (w in s.workers) wa.put(JSONObject().put("name", w.name).put("rate", w.rate))
         o.put("workers", wa)
@@ -95,7 +95,7 @@ object Store {
             compEmail = o.optString("compEmail", d.compEmail),
             compGsm = o.optString("compGsm", d.compGsm),
             compBtw = o.optString("compBtw", d.compBtw),
-            compLogoPath = o.optString("compLogoPath", ""),   // YENİ
+            compLogoPath = o.optString("compLogoPath", ""),
             workers = workers,
             projects = projects,
             categories = cats
