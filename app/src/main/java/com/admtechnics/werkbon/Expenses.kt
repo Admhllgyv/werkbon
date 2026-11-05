@@ -201,8 +201,7 @@ fun ExpenseCard(
     var txt by remember(e.id) { mutableStateOf(if (e.amount == 0.0) "" else fmt(e.amount)) }
     Card(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Column(Modifier.padding(8.dp)) {
-            Picker("Gün", dayTr[e.day], dayTr, { v -> onChange(e.copy(day = dayTr.indexOf(v))) }, Modifier.fillMaxWidth())
-            Spacer(Modifier.height(4.dp))
+            // Gün seçici silindi, çünkü gün dışarıdan geliyor
             Picker("Proje", e.project, projects, { v -> onChange(e.copy(project = v)) }, Modifier.fillMaxWidth())
             Spacer(Modifier.height(4.dp))
             Picker("Gider", e.category, cats, { v -> onChange(e.copy(category = v)) }, Modifier.fillMaxWidth())
@@ -235,19 +234,29 @@ fun ExpenseCard(
 }
 
 @Composable
-fun ExpensesSection(state: AppState, key: String) {
+fun ExpensesSection(state: AppState, key: String, day: Int) {
     val ctx = LocalContext.current
-    var items by remember(key) { mutableStateOf(ExpenseStore.load(ctx)[key] ?: emptyList()) }
+    
+    val allExpenses = ExpenseStore.load(ctx)[key] ?: emptyList()
+    var items by remember(key, day, allExpenses) { 
+        mutableStateOf(allExpenses.filter { it.day == day }) 
+    }
+    
     var pendingFile by rememberSaveable { mutableStateOf("") }
     var pendingIdx by rememberSaveable { mutableStateOf(-1) }
     val projects = state.projects.sortedByDescending { it.code }.map { "${it.code} - ${it.name}" }
     val cats = state.categories
 
     fun update(list: List<Expense>) {
-        items = list
+        val currentAll = ExpenseStore.load(ctx)[key] ?: emptyList()
+        val otherDays = currentAll.filter { it.day != day }
+        val newListForAll = (otherDays + list).sortedBy { it.day }
+        
         val all = LinkedHashMap(ExpenseStore.load(ctx))
-        all[key] = list
+        all[key] = newListForAll
         ExpenseStore.save(ctx, all)
+        
+        items = list
     }
 
     fun attachImage(name: String) {
@@ -297,9 +306,9 @@ fun ExpensesSection(state: AppState, key: String) {
     val totalTxt = "%.2f".format(total)
 
     Column(Modifier.fillMaxWidth()) {
-        Spacer(Modifier.height(20.dp))
-        Title("Fişler / Giderler")
-        Text("Hafta gider toplamı: €$totalTxt", fontWeight = FontWeight.Bold)
+        if (items.isNotEmpty()) {
+            Text("Bu günün fiş toplamı: €$totalTxt", fontWeight = FontWeight.Bold)
+        }
         items.forEachIndexed { idx, e ->
             ExpenseCard(
                 e = e,
@@ -324,7 +333,7 @@ fun ExpensesSection(state: AppState, key: String) {
                 update(
                     items + Expense(
                         id = System.currentTimeMillis().toString(),
-                        day = 0,
+                        day = day,
                         project = projects[0],
                         category = cats[0],
                         amount = 0.0,
