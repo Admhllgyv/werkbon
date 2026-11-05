@@ -295,6 +295,115 @@ fun WerkbonScreen(state: AppState) {
                 }) { Text("+ Kayıt ekle") }
             }
      }
+             // ====== PDF OLUŞTURMA BÖLÜMÜ ======
+        Spacer(Modifier.height(20.dp))
+        Title("Werkbon PDF")
+        
+        val pdfItems = projects.filter { pLabel ->
+            val hasEntries = entries.any { it.project == pLabel }
+            val hasExpenses = ExpenseStore.load(ctx)[key]?.any { it.project == pLabel } == true
+            hasEntries || hasExpenses
+        }
+        
+        if (pdfItems.isEmpty()) {
+            Text("Bu hafta için kayıtlı proje yok.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        } else {
+            pdfItems.forEach { pLabel ->
+                OutlinedButton(
+                    onClick = {
+                        PdfMaker.admContextHolder = ctx
+                        val expList = ExpenseStore.load(ctx)[key] ?: emptyList()
+                        val result = PdfMaker.makePdf(
+                            ctx = ctx,
+                            state = state,
+                            projectLabel = pLabel,
+                            weekEntries = entries,
+                            weekExpenses = expList,
+                            year = year,
+                            week = week
+                        )
+                        sharePdf(ctx, result.file)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("📄 PDF: $pLabel")
+                }
+                Spacer(Modifier.height(6.dp))
+            }
+        }
+                // ====== PDF OLUŞTURMA BÖLÜMÜ ======
+        Spacer(Modifier.height(20.dp))
+        Title("Werkbon PDF")
+        
+        val pdfItems = projects.filter { pLabel ->
+            val hasEntries = entries.any { it.project == pLabel }
+            val hasExpenses = ExpenseStore.load(ctx)[key]?.any { it.project == pLabel } == true
+            hasEntries || hasExpenses
+        }
+        
+        if (pdfItems.isEmpty()) {
+            Text("Bu hafta için kayıtlı proje yok.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        } else {
+            pdfItems.forEach { pLabel ->
+                OutlinedButton(
+                    onClick = {
+                        PdfMaker.admContextHolder = ctx
+                        val expList = ExpenseStore.load(ctx)[key] ?: emptyList()
+                        val result = PdfMaker.makePdf(
+                            ctx = ctx,
+                            state = state,
+                            projectLabel = pLabel,
+                            weekEntries = entries,
+                            weekExpenses = expList,
+                            year = year,
+                            week = week
+                        )
+                        sharePdf(ctx, result.file)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("📄 PDF: $pLabel")
+                }
+                Spacer(Modifier.height(6.dp))
+            }
+        }
+            Spacer(Modifier.height(20.dp))
+        Title("Werkbon PDF")
+        
+        val pdfItems = projects.filter { pLabel ->
+            val hasEntries = entries.any { it.project == pLabel }
+            val hasExpenses = ExpenseStore.load(ctx)[key]?.any { it.project == pLabel } == true
+            hasEntries || hasExpenses
+        }
+        
+        if (pdfItems.isEmpty()) {
+            Text("Bu hafta için kayıtlı proje yok.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        } else {
+            pdfItems.forEach { pLabel ->
+                OutlinedButton(
+                    onClick = {
+                        PdfMaker.admContextHolder = ctx
+                        val expList = ExpenseStore.load(ctx)[key] ?: emptyList()
+                        val result = PdfMaker.makePdf(
+                            ctx = ctx,
+                            state = state,
+                            projectLabel = pLabel,
+                            weekEntries = entries,
+                            weekExpenses = expList,
+                            year = year,
+                            week = week
+                        )
+                        sharePdf(ctx, result.file)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("📄 PDF: $pLabel")
+                }
+                Spacer(Modifier.height(6.dp))
+            }
+        }
+        // ====== PDF BÖLÜMÜ SONU ======
+
         ExpensesSection(state, key)
         Spacer(Modifier.height(24.dp))
     }
