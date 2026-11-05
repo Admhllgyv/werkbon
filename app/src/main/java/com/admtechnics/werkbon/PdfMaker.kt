@@ -5,7 +5,9 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Matrix
 import android.graphics.Paint
+import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
@@ -79,6 +81,7 @@ object PdfMaker {
 
         val withImg = expWithCode.filter { it.first.image.isNotEmpty() }
         if (withImg.isNotEmpty()) {
+            // Her sayfada 4 resim (2x2 formatında)
             val chunks = withImg.chunked(4)
             for ((chunkIdx, chunk) in chunks.withIndex()) {
                 val p = doc.startPage(PdfDocument.PageInfo.Builder(PW.toInt(), PH.toInt(), pageNum++).create())
@@ -343,10 +346,12 @@ object PdfMaker {
         return top + 14f
     }
 
+    // YENİ: Resimleri kutunun içini tam dolduracak ve maksimum netlikte çizecek
     private fun drawImageGrid(canvas: Canvas, items: List<Pair<Expense, String>>, top: Float) {
         val ctx = admContextHolder ?: return
         val cellW = (PW - 2 * MARGIN) / 2f
         val cellH = 360f
+        
         for ((i, pair) in items.withIndex()) {
             val (e, code) = pair
             val col = i % 2
@@ -354,26 +359,38 @@ object PdfMaker {
             val x = MARGIN + col * cellW
             val y = top + row * cellH
 
+            // Dış çerçeve
             drawBackground(canvas, RectF(x, y, x + cellW, y + cellH), border, isStroke = true, strokeWidth = 0.8f)
 
+            // Başlık
             val dayNl = listOf("Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag")
             drawTextBold(canvas, "$code - ${e.category} (€%.2f)".format(e.amount), x + 6f, y + 16f, 8.5f)
             drawTextNormal(canvas, dayNl[e.day], x + 6f, y + 28f, 8f)
 
             val file = File(receiptsDir(ctx), e.image)
             if (file.exists()) {
-                val bmp = loadScaled(file, cellW.toInt() - 20, cellH.toInt() - 55)
+                // Resmi ORIJINAL boyutunda yükle (küçültme yok)
+                val bmp = BitmapFactory.decodeFile(file.absolutePath)
                 if (bmp != null) {
-                    val imgW = bmp.width.toFloat()
-                    val imgH = bmp.height.toFloat()
-                    val maxW = cellW - 20f
-                    val maxH = cellH - 55f
-                    val scale = minOf(maxW / imgW, maxH / imgH, 1f)
-                    val drawW = imgW * scale
-                    val drawH = imgH * scale
-                    val imgX = x + (cellW - drawW) / 2f
-                    val imgY = y + 34f + (maxH - drawH) / 2f
-                    canvas.drawBitmap(bmp, null, RectF(imgX, imgY, imgX + drawW, imgY + drawH), null)
+                    // Resim alanı (başlık kısmını çıkar)
+                    val imgArea = RectF(x + 5f, y + 34f, x + cellW - 5f, y + cellH - 5f)
+                    
+                    // Resmi alana "Cover" mantığıyla sığdır (oranını bozmadan alanı maksimum doldur)
+                    val scale = maxOf(imgArea.width() / bmp.width, imgArea.height() / bmp.height)
+                    val drawW = bmp.width * scale
+                    val drawH = bmp.height * scale
+                    val imgX = imgArea.left + (imgArea.width() - drawW) / 2f
+                    val imgY = imgArea.top + (imgArea.height() - drawH) / 2f
+                    
+                    val destRect = RectF(imgX, imgY, imgX + drawW, imgY + drawH)
+                    
+                    // Resmi çiz
+                    val paint = Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG)
+                    paint.isFilterBitmap = true
+                    canvas.drawBitmap(bmp, null, destRect, paint)
+                    
+                    // Belleği temizle
+                    bmp.recycle()
                 }
             }
         }
@@ -384,18 +401,5 @@ object PdfMaker {
         val f = File(path)
         if (!f.exists()) return null
         return try { BitmapFactory.decodeFile(f.absolutePath) } catch (e: Exception) { null }
-    }
-
-    private fun loadScaled(file: File, maxW: Int, maxH: Int): Bitmap? {
-        return try {
-            val b = BitmapFactory.Options()
-            b.inJustDecodeBounds = true
-            BitmapFactory.decodeFile(file.absolutePath, b)
-            var sample = 1
-            while (b.outWidth / sample > maxW || b.outHeight / sample > maxH) sample *= 2
-            val o = BitmapFactory.Options()
-            o.inSampleSize = sample
-            BitmapFactory.decodeFile(file.absolutePath, o)
-        } catch (e: Exception) { null }
     }
 }
