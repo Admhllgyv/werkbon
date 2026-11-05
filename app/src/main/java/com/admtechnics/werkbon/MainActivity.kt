@@ -74,6 +74,7 @@ fun WerkbonApp(ctx: Context) {
         Box(Modifier.padding(pad).fillMaxSize()) {
             when (tab) {
                 0 -> WerkbonScreen(state)
+                1 -> OzetScreen(state)
                 2 -> ProjectsScreen(state, change)
                 3 -> SettingsScreen(state, change)
                 else -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
