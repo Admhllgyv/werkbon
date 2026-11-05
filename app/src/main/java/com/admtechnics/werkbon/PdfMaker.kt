@@ -24,12 +24,8 @@ object PdfMaker {
     private val altBg = Color.parseColor("#F1F5F9")
     private val border = Color.parseColor("#CBD5E1")
     private val textDark = Color.parseColor("#1E293B")
+    private val textMuted = Color.parseColor("#475569")
     private val white = Color.WHITE
-
-    private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val boldPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-    }
 
     private val dateFmt = java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy")
 
@@ -105,33 +101,38 @@ object PdfMaker {
         return PdfResult(out, fname)
     }
 
-    // --- Çizim Yardımcıları (Her seferinde fontu sıfırlar) ---
+    // --- KUSURSUZ YAZI YAZMA FONKSİYONLARI (Her seferinde yeni Paint oluşturur) ---
     private fun drawTextNormal(canvas: Canvas, text: String, x: Float, y: Float, size: Float = 8f, color: Int = textDark, align: Paint.Align = Paint.Align.LEFT) {
-        paint.color = color
-        paint.textSize = size
-        paint.textAlign = align
-        paint.typeface = Typeface.DEFAULT
-        canvas.drawText(text, x, y, paint)
+        val p = Paint(Paint.ANTI_ALIAS_FLAG)
+        p.color = color
+        p.textSize = size
+        p.textAlign = align
+        p.typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+        canvas.drawText(text, x, y, p)
     }
 
     private fun drawTextBold(canvas: Canvas, text: String, x: Float, y: Float, size: Float = 8f, color: Int = primary, align: Paint.Align = Paint.Align.LEFT) {
-        boldPaint.color = color
-        boldPaint.textSize = size
-        boldPaint.textAlign = align
-        boldPaint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-        canvas.drawText(text, x, y, boldPaint)
+        val p = Paint(Paint.ANTI_ALIAS_FLAG)
+        p.color = color
+        p.textSize = size
+        p.textAlign = align
+        p.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        canvas.drawText(text, x, y, p)
     }
-    // ---------------------------------------------------------
+
+    private fun drawBackground(canvas: Canvas, rect: RectF, color: Int, isStroke: Boolean = false, strokeWidth: Float = 1f) {
+        val p = Paint(Paint.ANTI_ALIAS_FLAG)
+        p.style = if (isStroke) Paint.Style.STROKE else Paint.Style.FILL
+        p.color = color
+        p.strokeWidth = strokeWidth
+        canvas.drawRect(rect, p)
+    }
+    // -----------------------------------------------------------------------------
 
     private fun drawHeader(canvas: Canvas, state: AppState, projectLabel: String, year: Int, week: Int, top: Float): Float {
-        val boxH = 95f
-        paint.style = Paint.Style.FILL
-        paint.color = lightBg
-        canvas.drawRect(MARGIN, top, PW - MARGIN, top + boxH, paint)
-        paint.style = Paint.Style.STROKE
-        paint.strokeWidth = 2f
-        paint.color = accent
-        canvas.drawRect(MARGIN, top, PW - MARGIN, top + boxH, paint)
+        val boxH = 105f // Yüksekliği biraz daha artırdık
+        drawBackground(canvas, RectF(MARGIN, top, PW - MARGIN, top + boxH), lightBg)
+        drawBackground(canvas, RectF(MARGIN, top, PW - MARGIN, top + boxH), accent, isStroke = true, strokeWidth = 2f)
 
         // SOL TARAF: Logo ve Firma Bilgileri
         var x = MARGIN + 10f
@@ -147,13 +148,13 @@ object PdfMaker {
         drawTextBold(canvas, state.compName, x, yLine, 11f)
         
         yLine += 16f
-        drawTextNormal(canvas, state.compAddress, x, yLine, 8f, Color.parseColor("#475569"))
+        drawTextNormal(canvas, state.compAddress, x, yLine, 8f, textMuted)
         
         yLine += 13f
-        drawTextNormal(canvas, "E-mail: ${state.compEmail} | GSM: ${state.compGsm}", x, yLine, 8f, Color.parseColor("#475569"))
+        drawTextNormal(canvas, "E-mail: ${state.compEmail} | GSM: ${state.compGsm}", x, yLine, 8f, textMuted)
         
         yLine += 13f
-        drawTextNormal(canvas, "BTW: ${state.compBtw}", x, yLine, 8f, Color.parseColor("#475569"))
+        drawTextNormal(canvas, "BTW: ${state.compBtw}", x, yLine, 8f, textMuted)
 
         // SAĞ TARAF: Hafta ve Proje
         val rightLabelX = PW - MARGIN - 180f
@@ -166,22 +167,43 @@ object PdfMaker {
         // Proje
         drawTextBold(canvas, "Project:", rightLabelX, top + 52f, 8.5f)
         
+        // Proje adı çok uzunsa alt satıra geçir (Multi-line destek)
         val maxWidth = (PW - MARGIN) - rightValueX - 5f
-        val fittedText = fitText(projectLabel, paint, maxWidth)
-        drawTextNormal(canvas, fittedText, rightValueX, top + 52f, 8.5f)
+        val lines = wrapText(projectLabel, maxWidth, 8.5f)
+        
+        if (lines.isNotEmpty()) {
+            drawTextNormal(canvas, lines[0], rightValueX, top + 52f, 8.5f)
+        }
+        if (lines.size > 1) {
+            drawTextNormal(canvas, lines[1], rightValueX, top + 64f, 8.5f)
+        }
 
         return top + boxH
     }
 
-    private fun fitText(text: String, p: Paint, maxWidth: Float): String {
-        p.textSize = 8.5f
+    // Uzun yazıları alt satıra bölme fonksiyonu
+    private fun wrapText(text: String, maxWidth: Float, textSize: Float): List<String> {
+        val p = Paint(Paint.ANTI_ALIAS_FLAG)
+        p.textSize = textSize
         p.typeface = Typeface.DEFAULT
-        if (p.measureText(text) <= maxWidth) return text
-        var s = text
-        while (s.isNotEmpty() && p.measureText("$s...") > maxWidth) {
-            s = s.dropLast(1)
+        
+        if (p.measureText(text) <= maxWidth) return listOf(text)
+        
+        val words = text.split(" ")
+        val lines = mutableListOf<String>()
+        var currentLine = ""
+        
+        for (word in words) {
+            val testLine = if (currentLine.isEmpty()) word else "$currentLine $word"
+            if (p.measureText(testLine) <= maxWidth) {
+                currentLine = testLine
+            } else {
+                if (currentLine.isNotEmpty()) lines.add(currentLine)
+                currentLine = word
+            }
         }
-        return "$s..."
+        if (currentLine.isNotEmpty()) lines.add(currentLine)
+        return lines
     }
 
     private fun drawWorkerTable(
@@ -193,15 +215,12 @@ object PdfMaker {
         week: Int,
         top: Float
     ): Float {
-        // Sütun Genişlikleri Toplamı: 90 + 120 + 55 + 55 + 55 + 165 = 540
         val cols = floatArrayOf(90f, 120f, 55f, 55f, 55f, 165f) 
         val rowH = 18f
         val x0 = MARGIN
         var y = top
 
-        paint.style = Paint.Style.FILL
-        paint.color = primary
-        canvas.drawRect(x0, y, PW - MARGIN, y + rowH, paint)
+        drawBackground(canvas, RectF(x0, y, PW - MARGIN, y + rowH), primary)
         
         val heads = listOf("Medewerker", "Dag", "Start", "Pauze", "Einde", "Uren")
         var x = x0
@@ -213,34 +232,25 @@ object PdfMaker {
 
         val mon = mondayOf(year, week)
         for ((idx, e) in entries.withIndex()) {
-            paint.style = Paint.Style.FILL
-            paint.color = if (idx % 2 == 0) white else lightBg
-            canvas.drawRect(x0, y, PW - MARGIN, y + rowH, paint)
-
-            paint.style = Paint.Style.STROKE
-            paint.color = border
-            paint.strokeWidth = 0.5f
-            canvas.drawRect(x0, y, PW - MARGIN, y + rowH, paint)
+            val bgColor = if (idx % 2 == 0) white else lightBg
+            drawBackground(canvas, RectF(x0, y, PW - MARGIN, y + rowH), bgColor)
+            drawBackground(canvas, RectF(x0, y, PW - MARGIN, y + rowH), border, isStroke = true, strokeWidth = 0.5f)
 
             val d = mon.plusDays(e.day.toLong())
             val dateStr = "${dayNl[e.day]} (${d.format(dateFmt)})"
 
             var xx = x0
 
-            // Medewerker (İsmin kesilmemesi için genişlik 90f yapıldı, font 8f)
             drawTextBold(canvas, e.worker, xx + 6f, y + rowH - 6f, 8f)
             xx += cols[0]
 
-            // Dag
             drawTextNormal(canvas, dateStr, xx + 6f, y + rowH - 6f, 8f)
             xx += cols[1]
 
-            // Saatler
             drawTextNormal(canvas, hm(e.start), xx + cols[2] / 2f, y + rowH - 6f, 8f, textDark, Paint.Align.CENTER); xx += cols[2]
             drawTextNormal(canvas, hm(e.pause), xx + cols[3] / 2f, y + rowH - 6f, 8f, textDark, Paint.Align.CENTER); xx += cols[3]
             drawTextNormal(canvas, hm(e.end), xx + cols[4] / 2f, y + rowH - 6f, 8f, textDark, Paint.Align.CENTER); xx += cols[4]
             
-            // Uren
             drawTextNormal(canvas, fmt(e.hours()), xx + cols[5] / 2f, y + rowH - 6f, 8f, textDark, Paint.Align.CENTER)
 
             y += rowH
@@ -263,13 +273,8 @@ object PdfMaker {
         drawTextBold(canvas, "Materialen en Kosten:", MARGIN, y, 10f, accent)
         y += 8f
 
-        paint.style = Paint.Style.FILL
-        paint.color = altBg
-        canvas.drawRect(MARGIN, y, PW - MARGIN, y + rowH, paint)
-        paint.style = Paint.Style.STROKE
-        paint.color = border
-        paint.strokeWidth = 0.5f
-        canvas.drawRect(MARGIN, y, PW - MARGIN, y + rowH, paint)
+        drawBackground(canvas, RectF(MARGIN, y, PW - MARGIN, y + rowH), altBg)
+        drawBackground(canvas, RectF(MARGIN, y, PW - MARGIN, y + rowH), border, isStroke = true, strokeWidth = 0.5f)
 
         var x = MARGIN + 6f
         drawTextBold(canvas, "Document", x, y + rowH - 6f, 8.5f); x += cols[0]
@@ -281,13 +286,8 @@ object PdfMaker {
         val dayNl = listOf("Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag")
         val mon = mondayOf(year, week)
         for ((e, code) in items) {
-            paint.style = Paint.Style.FILL
-            paint.color = white
-            canvas.drawRect(MARGIN, y, PW - MARGIN, y + rowH, paint)
-            paint.style = Paint.Style.STROKE
-            paint.color = border
-            paint.strokeWidth = 0.5f
-            canvas.drawRect(MARGIN, y, PW - MARGIN, y + rowH, paint)
+            drawBackground(canvas, RectF(MARGIN, y, PW - MARGIN, y + rowH), white)
+            drawBackground(canvas, RectF(MARGIN, y, PW - MARGIN, y + rowH), border, isStroke = true, strokeWidth = 0.5f)
 
             var xx = MARGIN + 6f
             
@@ -312,13 +312,8 @@ object PdfMaker {
         top: Float
     ): Float {
         val boxH = 95f
-        paint.style = Paint.Style.FILL
-        paint.color = lightBg
-        canvas.drawRect(MARGIN, top, PW - MARGIN, top + boxH, paint)
-        paint.style = Paint.Style.STROKE
-        paint.color = border
-        paint.strokeWidth = 1f
-        canvas.drawRect(MARGIN, top, PW - MARGIN, top + boxH, paint)
+        drawBackground(canvas, RectF(MARGIN, top, PW - MARGIN, top + boxH), lightBg)
+        drawBackground(canvas, RectF(MARGIN, top, PW - MARGIN, top + boxH), border, isStroke = true, strokeWidth = 1f)
 
         var y = top + 18f
         drawTextBold(canvas, "Uren per medewerker:", MARGIN + 10f, y, 8.5f)
@@ -338,10 +333,12 @@ object PdfMaker {
         val rightColX = MARGIN + 280f
         drawTextBold(canvas, "Klantakkoord / Handtekening:", rightColX, top + 18f, 8.5f)
 
+        // İmza çizgisi
         y = top + boxH - 30f
-        paint.color = Color.parseColor("#94A3B8")
-        paint.strokeWidth = 1f
-        canvas.drawLine(rightColX, y, PW - MARGIN - 20f, y, paint)
+        val linePaint = Paint(Paint.ANTI_ALIAS_FLAG)
+        linePaint.color = Color.parseColor("#94A3B8")
+        linePaint.strokeWidth = 1f
+        canvas.drawLine(rightColX, y, PW - MARGIN - 20f, y, linePaint)
 
         drawTextBold(canvas, "Totale uren: ${fmt(totalH)} uur", MARGIN + 10f, top + boxH - 22f, 9f)
         drawTextBold(canvas, "Totale kosten: €%.2f".format(totalCost), MARGIN + 10f, top + boxH - 10f, 9f)
@@ -366,10 +363,7 @@ object PdfMaker {
             val x = MARGIN + col * cellW
             val y = top + row * cellH
 
-            paint.style = Paint.Style.STROKE
-            paint.color = border
-            paint.strokeWidth = 0.8f
-            canvas.drawRect(x, y, x + cellW, y + cellH, paint)
+            drawBackground(canvas, RectF(x, y, x + cellW, y + cellH), border, isStroke = true, strokeWidth = 0.8f)
 
             val dayNl = listOf("Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag")
             drawTextBold(canvas, "$code - ${e.category} (€%.2f)".format(e.amount), x + 6f, y + 16f, 8.5f)
