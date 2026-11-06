@@ -343,7 +343,7 @@ object PdfMaker {
         return top + 14f
     }
 
-    // RESİMLERİ TAŞMADAN MAKSİMUM BÜYÜKLÜKTE SIĞDIRAN FONKSİYON
+    // YENİ: Resim çözünürlüğü optimize edildi (Hız için)
     private fun drawImageGrid(canvas: Canvas, items: List<Pair<Expense, String>>, top: Float) {
         val ctx = admContextHolder ?: return
         val cellW = (PW - 2 * MARGIN) / 2f
@@ -356,28 +356,25 @@ object PdfMaker {
             val x = MARGIN + col * cellW
             val y = top + row * cellH
 
-            // Hücre Çerçevesi
-            drawBackground(canvas, RectF(x, y, x + cellW, y + cellH), white) // Arka plan beyaz
+            drawBackground(canvas, RectF(x, y, x + cellW, y + cellH), white)
             drawBackground(canvas, RectF(x, y, x + cellW, y + cellH), border, isStroke = true, strokeWidth = 0.8f)
 
-            // Başlık (Gün ve Doc kodu)
             val dayNl = listOf("Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag")
             drawTextBold(canvas, "$code - ${e.category} (€%.2f)".format(e.amount), x + 6f, y + 16f, 8.5f)
             drawTextNormal(canvas, dayNl[e.day], x + 6f, y + 28f, 8f, textMuted)
 
-            // Resim Alanı (Başlık kısmının altında kalan boşluk)
             val imgArea = RectF(x + 5f, y + 34f, x + cellW - 5f, y + cellH - 5f)
 
             val file = File(receiptsDir(ctx), e.image)
             if (file.exists()) {
-                val bmp = BitmapFactory.decodeFile(file.absolutePath)
+                // Bellek dostu ve hızlı yükleme için "inSampleSize" kullanıyoruz
+                val bmp = decodeSampledBitmapFromFile(file, imgArea.width().toInt(), imgArea.height().toInt())
+                
                 if (bmp != null) {
-                    // "Fit" (Sığdır) mantığı: Oranı bozmadan kutuya en iyi şekilde sığdır
                     val scale = minOf(imgArea.width() / bmp.width, imgArea.height() / bmp.height)
                     val drawW = bmp.width * scale
                     val drawH = bmp.height * scale
                     
-                    // Ortala
                     val imgX = imgArea.left + (imgArea.width() - drawW) / 2f
                     val imgY = imgArea.top + (imgArea.height() - drawH) / 2f
                     
@@ -389,6 +386,25 @@ object PdfMaker {
                 }
             }
         }
+    }
+
+    private fun decodeSampledBitmapFromFile(file: File, reqWidth: Int, reqHeight: Int): Bitmap? {
+        val options = BitmapFactory.Options()
+        options.inJustDecodeBounds = true
+        BitmapFactory.decodeFile(file.absolutePath, options)
+
+        var inSampleSize = 1
+        if (options.outHeight > reqHeight || options.outWidth > reqWidth) {
+            val halfHeight = options.outHeight / 2
+            val halfWidth = options.outWidth / 2
+            while (halfHeight / inSampleSize >= reqHeight && halfWidth / inSampleSize >= reqWidth) {
+                inSampleSize *= 2
+            }
+        }
+
+        options.inJustDecodeBounds = false
+        options.inSampleSize = inSampleSize
+        return BitmapFactory.decodeFile(file.absolutePath, options)
     }
 
     private fun loadLogo(path: String): Bitmap? {
