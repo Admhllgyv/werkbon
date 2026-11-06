@@ -8,6 +8,21 @@ import java.io.File
 data class Worker(val name: String, val rate: Double)
 data class Project(val code: String, val name: String)
 
+// YENİ: Proforma Modeli
+data class Proforma(
+    val id: String,
+    val projectName: String,
+    val date: String,
+    val items: List<ProformaItem>,
+    val note: String = ""
+)
+
+data class ProformaItem(
+    val description: String,
+    val quantity: Double,
+    val price: Double
+)
+
 data class AppState(
     val compName: String,
     val compAddress: String,
@@ -17,7 +32,8 @@ data class AppState(
     val compLogoPath: String,
     val workers: List<Worker>,
     val projects: List<Project>,
-    val categories: List<String>
+    val categories: List<String>,
+    val proformas: List<Proforma> = emptyList() // YENİ
 )
 
 object Store {
@@ -39,7 +55,8 @@ object Store {
         categories = listOf(
             "Malzeme", "Su borusu", "Şalter", "Parking",
             "Kabel", "Verlichting", "Eten", "Hotel"
-        )
+        ),
+        proformas = emptyList()
     )
 
     fun load(ctx: Context): AppState {
@@ -60,15 +77,35 @@ object Store {
         o.put("compGsm", s.compGsm)
         o.put("compBtw", s.compBtw)
         o.put("compLogoPath", s.compLogoPath)
+        
         val wa = JSONArray()
         for (w in s.workers) wa.put(JSONObject().put("name", w.name).put("rate", w.rate))
         o.put("workers", wa)
+        
         val pa = JSONArray()
         for (p in s.projects) pa.put(JSONObject().put("code", p.code).put("name", p.name))
         o.put("projects", pa)
+        
         val ca = JSONArray()
         for (c in s.categories) ca.put(c)
         o.put("categories", ca)
+
+        // YENİ: Proformaları kaydet
+        val pra = JSONArray()
+        for (pr in s.proformas) {
+            val prObj = JSONObject()
+                .put("id", pr.id)
+                .put("projectName", pr.projectName)
+                .put("date", pr.date)
+                .put("note", pr.note)
+            val ia = JSONArray()
+            for (item in pr.items) {
+                ia.put(JSONObject().put("description", item.description).put("quantity", item.quantity).put("price", item.price))
+            }
+            prObj.put("items", ia)
+            pra.put(prObj)
+        }
+        o.put("proformas", pra)
         return o
     }
 
@@ -89,6 +126,23 @@ object Store {
         val cats = ArrayList<String>()
         val ca = o.optJSONArray("categories") ?: JSONArray()
         for (i in 0 until ca.length()) cats.add(ca.getString(i))
+
+        val proformas = ArrayList<Proforma>()
+        val pra = o.optJSONArray("proformas") ?: JSONArray()
+        for (i in 0 until pra.length()) {
+            val pObj = pra.getJSONObject(i)
+            val items = ArrayList<ProformaItem>()
+            val ia = pObj.optJSONArray("items") ?: JSONArray()
+            for (j in 0 until ia.length()) {
+                val iObj = ia.getJSONObject(j)
+                items.add(ProformaItem(iObj.getString("description"), iObj.optDouble("quantity", 1.0), iObj.optDouble("price", 0.0)))
+            }
+            proformas.add(Proforma(
+                pObj.getString("id"), pObj.getString("projectName"), 
+                pObj.getString("date"), items, pObj.optString("note", "")
+            ))
+        }
+
         return AppState(
             compName = o.optString("compName", d.compName),
             compAddress = o.optString("compAddress", d.compAddress),
@@ -98,7 +152,8 @@ object Store {
             compLogoPath = o.optString("compLogoPath", ""),
             workers = workers,
             projects = projects,
-            categories = cats
+            categories = cats,
+            proformas = proformas
         )
     }
 }
