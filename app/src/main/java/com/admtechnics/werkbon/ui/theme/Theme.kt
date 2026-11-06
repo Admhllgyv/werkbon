@@ -13,15 +13,13 @@ private val LightColors = lightColorScheme(
     background = BackgroundGray,
     onBackground = TextDark,
     surface = SurfaceWhite,
-    onSurface = TextDark
+    onSurface = TextDark,
+    surfaceVariant = CardGray, // Gri açılır sekmeler ve fiş kutuları için
+    onSurfaceVariant = TextMuted,
+    outline = BorderGray
 )
 
 @Composable
-fun WerkbonTheme(
-    content: @Composable () -> Unit
-) {
-    MaterialTheme(
-        colorScheme = LightColors,
-        content = content
-    )
+fun WerkbonTheme(content: @Composable () -> Unit) {
+    MaterialTheme(colorScheme = LightColors, content = content)
 }
