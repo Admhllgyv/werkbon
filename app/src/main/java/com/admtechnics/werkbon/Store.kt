@@ -7,14 +7,12 @@ import java.io.File
 
 data class Worker(val name: String, val rate: Double)
 
-// YENİ: Müşteri/Firma Modeli
 data class Customer(
     val name: String,
     val address: String,
     val btw: String
 )
 
-// Proje modeli güncellendi (Müşteri adı eklendi)
 data class Project(
     val code: String, 
     val name: String,
@@ -25,6 +23,14 @@ data class ProformaItem(
     val description: String,
     val quantity: Double,
     val price: Double
+)
+
+data class Proforma(
+    val id: String,
+    val projectName: String,
+    val date: String,
+    val items: List<ProformaItem>,
+    val note: String = ""
 )
 
 data class AppState(
@@ -38,7 +44,7 @@ data class AppState(
     val projects: List<Project>,
     val categories: List<String>,
     val proformas: List<Proforma> = emptyList(),
-    val customers: List<Customer> = emptyList() // YENİ
+    val customers: List<Customer> = emptyList()
 )
 
 object Store {
@@ -99,7 +105,6 @@ object Store {
         for (c in s.customers) cua.put(JSONObject().put("name", c.name).put("address", c.address).put("btw", c.btw))
         o.put("customers", cua)
 
-        // Proformalar (Basit tutuldu)
         val pra = JSONArray()
         for (pr in s.proformas) {
             val prObj = JSONObject().put("id", pr.id).put("projectName", pr.projectName).put("date", pr.date).put("note", pr.note)
