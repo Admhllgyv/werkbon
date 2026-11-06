@@ -250,3 +250,105 @@ fun ExpensesSection(state: AppState, key: String, day: Int) {
     
     var pendingFile by rememberSaveable { mutableStateOf("") }
     var pendingIdx by rememberSaveable { mutableStateOf(-1) }
+    val projects = state.projects.sortedByDescending { it.code }.map { "${it.code} - ${it.name}" }
+    val cats = state.categories
+
+    fun update(list: List<Expense>) {
+        val currentAll = ExpenseStore.load(ctx)[key] ?: emptyList()
+        val otherDays = currentAll.filter { it.day != day }
+        val newListForAll = (otherDays + list).sortedBy { it.day }
+        
+        val all = LinkedHashMap(ExpenseStore.load(ctx))
+        all[key] = newListForAll
+        ExpenseStore.save(ctx, all)
+        
+        items = list
+    }
+
+    fun attachImage(name: String) {
+        if (pendingIdx in items.indices) {
+            val l = items.toMutableList()
+            l[pendingIdx] = l[pendingIdx].copy(image = name)
+            update(l)
+        }
+    }
+
+    val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
+        val name = pendingFile
+        if (ok && name.isNotEmpty()) {
+            downscaleReceipt(File(receiptsDir(ctx), name))
+            attachImage(name)
+        }
+        pendingFile = ""
+    }
+
+    val gallery = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) {
+            val name = "r_${System.currentTimeMillis()}.jpg"
+            val f = File(receiptsDir(ctx), name)
+            try {
+                ctx.contentResolver.openInputStream(uri)?.use { input ->
+                    f.outputStream().use { out -> input.copyTo(out) }
+                }
+                downscaleReceipt(f)
+                attachImage(name)
+            } catch (ex: Exception) {}
+        }
+    }
+
+    fun takePhoto(idx: Int) {
+        val name = "r_${System.currentTimeMillis()}.jpg"
+        val f = File(receiptsDir(ctx), name)
+        f.createNewFile()
+        val uri = FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", f)
+        pendingFile = name
+        pendingIdx = idx
+        camera.launch(uri)
+    }
+
+    val total = r2(items.map { it.amount }.sum())
+    val totalTxt = "%.2f".format(total)
+
+    Column(Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp)) {
+        if (items.isNotEmpty()) {
+            Text("Bu günün fiş toplamı: €$totalTxt", fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+        }
+        items.forEachIndexed { idx, e ->
+            ExpenseCard(
+                e = e,
+                projects = projects,
+                cats = cats,
+                onChange = { ne ->
+                    update(items.toMutableList().also { l -> l[idx] = ne })
+                },
+                onCamera = { takePhoto(idx) },
+                onGallery = {
+                    pendingIdx = idx
+                    gallery.launch("image/*")
+                },
+                onDelete = {
+                    if (e.image.isNotEmpty()) File(receiptsDir(ctx), e.image).delete()
+                    update(items.toMutableList().also { l -> l.removeAt(idx) })
+                }
+            )
+        }
+        if (projects.isNotEmpty() && cats.isNotEmpty()) {
+            Button(
+                onClick = {
+                    update(
+                        items + Expense(
+                            id = System.currentTimeMillis().toString(),
+                            day = day,
+                            project = projects[0],
+                            category = cats[0],
+                            amount = 0.0,
+                            image = ""
+                        )
+                    )
+                },
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.padding(top = 4.dp)
+            ) { Text("+ Fiş ekle", fontSize = 12.sp) }
+        }
+    }
+}
