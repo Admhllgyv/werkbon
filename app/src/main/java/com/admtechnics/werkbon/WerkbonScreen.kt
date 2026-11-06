@@ -10,6 +10,9 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,10 +26,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -38,6 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -302,59 +309,77 @@ fun WerkbonScreen(state: AppState) {
             Text("Önce Projeler ve Ayarlar sekmelerinden en az bir proje ve bir çalışan ekleyin.", color = MaterialTheme.colorScheme.error)
         }
 
-        // GÜNLÜK DÖNGÜ BAŞLANGICI
+        // GÜNLÜK DÖNGÜ (AÇILIR SEKME OLARAK)
         for (d in 0..4) {
             val dayEntries = entries.withIndex().filter { it.value.day == d }
             val date = mon.plusDays(d.toLong())
             val dayTotal = r2(dayEntries.map { it.value.hours() }.sum())
             
-            Spacer(Modifier.height(16.dp))
+            var isExpanded by remember { mutableStateOf(false) }
+            val rotationState by animateFloatAsState(if (isExpanded) 180f else 0f)
+
+            Spacer(Modifier.height(10.dp))
             
-            // Gün Başlığı (Şık Kart Tasarımı)
+            // Gün Başlığı (Tıklanabilir Kart)
             Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                 shape = RoundedCornerShape(8.dp),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().clickable { isExpanded = !isExpanded }
             ) {
-                Column(Modifier.padding(10.dp)) {
-                    Text("${dayTr[d]} (${dayNl[d]}) - ${date.format(dateFmt)}", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MaterialTheme.colorScheme.primary)
+                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("${dayTr[d]} (${dayNl[d]})", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MaterialTheme.colorScheme.primary)
+                        Text(date.format(dateFmt), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                     if (dayEntries.isNotEmpty()) {
-                        Text("Gün toplamı: ${fmt(dayTotal)} saat", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${fmt(dayTotal)} saat", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.secondary, modifier = Modifier.padding(end = 8.dp))
                     }
-                }
-            }
-            
-            for (iv in dayEntries) {
-                val idx = iv.index
-                EntryCard(
-                    e = iv.value,
-                    projects = projects,
-                    workers = workers,
-                    onChange = { ne ->
-                        setEntries(entries.toMutableList().also { l -> l[idx] = ne })
-                    },
-                    onDelete = {
-                        setEntries(entries.toMutableList().also { l -> l.removeAt(idx) })
-                    }
-                )
-            }
-            
-            if (projects.isNotEmpty() && workers.isNotEmpty()) {
-                TextButton(onClick = {
-                    val w = workers[0]
-                    val t = defaultTimes(w)
-                    setEntries(entries + WorkEntry(d, projects[0], w, t[0], t[1], t[2]))
-                }) { 
-                    Text("+ Kayıt ekle", fontWeight = FontWeight.Bold) 
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowDown,
+                        contentDescription = "Aç/Kapat",
+                        modifier = Modifier.rotate(rotationState)
+                    )
                 }
             }
 
-            // HER GÜNÜN KENDİ FİŞ BÖLÜMÜ
-            Spacer(Modifier.height(8.dp))
-            Text("💶 Fiş / Gider", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.secondary)
-            ExpensesSection(state, key, day = d)
+            // Açılır İçerik
+            AnimatedVisibility(visible = isExpanded) {
+                Column(Modifier.padding(start = 8.dp, end = 8.dp, top = 4.dp)) {
+                    if (dayEntries.isEmpty()) {
+                        Text("Bu gün için kayıt yok.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 8.dp))
+                    } else {
+                        for (iv in dayEntries) {
+                            val idx = iv.index
+                            EntryCard(
+                                e = iv.value,
+                                projects = projects,
+                                workers = workers,
+                                onChange = { ne ->
+                                    setEntries(entries.toMutableList().also { l -> l[idx] = ne })
+                                },
+                                onDelete = {
+                                    setEntries(entries.toMutableList().also { l -> l.removeAt(idx) })
+                                }
+                            )
+                        }
+                    }
+                    
+                    if (projects.isNotEmpty() && workers.isNotEmpty()) {
+                        TextButton(onClick = {
+                            val w = workers[0]
+                            val t = defaultTimes(w)
+                            setEntries(entries + WorkEntry(d, projects[0], w, t[0], t[1], t[2]))
+                        }) { 
+                            Text("+ Kayıt ekle", fontWeight = FontWeight.Bold) 
+                        }
+                    }
+
+                    Spacer(Modifier.height(8.dp))
+                    Text("💶 Fiş / Gider", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.secondary)
+                    ExpensesSection(state, key, day = d)
+                }
+            }
         }
-        // GÜNLÜK DÖNGÜ BİTİŞİ
 
         // ====== PDF OLUŞTURMA BÖLÜMÜ ======
         Spacer(Modifier.height(30.dp))
