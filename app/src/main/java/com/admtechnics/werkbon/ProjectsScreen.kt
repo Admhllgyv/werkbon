@@ -3,32 +3,14 @@ package com.admtechnics.werkbon
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -42,33 +24,36 @@ fun ProjectsScreen(state: AppState, onChange: (AppState) -> Unit) {
     val ctx = LocalContext.current
     var newName by remember { mutableStateOf("") }
     var newCode by remember { mutableStateOf("") }
+    var selectedCustomer by remember { mutableStateOf("") } // YENİ
     
-    // Tüm haftalık verileri ve fişleri çekelim
+    val customerNames = state.customers.map { it.name }
+
     val weeksData = WeekStore.load(ctx)
     val expensesData = ExpenseStore.load(ctx)
 
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)
-    ) {
-        // YENİ PROJE EKLEME KARTI
-        Card(
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-            shape = RoundedCornerShape(12.dp),
-            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
-        ) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
+        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(defaultElevation = 3.dp), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
             Column(Modifier.padding(16.dp)) {
                 Title("Yeni Proje Ekle")
-                Field("Proje / Müşteri adı", newName) { newName = it }
-                Field("Proje kodu (örn. E260003)", newCode) { newCode = it }
+                Field("Proje / İş adı (örn. Stekene)", newName) { newName = it }
+                Field("Proje kodu (örn. E260320)", newCode) { newCode = it }
+                
+                // Müşteri Seçimi
+                if (customerNames.isNotEmpty()) {
+                    Picker("Firma / Müşteri Seçin", if (selectedCustomer.isEmpty()) "Seçiniz" else selectedCustomer, listOf("Seçiniz") + customerNames, { 
+                        if (it != "Seçiniz") selectedCustomer = it else selectedCustomer = ""
+                    }, Modifier.fillMaxWidth())
+                } else {
+                    Text("Önce Ayarlar'dan bir firma ekleyin.", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                }
+                
                 Spacer(Modifier.height(8.dp))
                 Button(
                     onClick = {
-                        if (newName.isNotBlank()) {
+                        if (newName.isNotBlank() && selectedCustomer.isNotEmpty()) {
                             val code = newCode.trim().ifEmpty { "E260000" }
-                            onChange(state.copy(projects = state.projects + Project(code, newName.trim())))
-                            newName = ""
-                            newCode = ""
+                            onChange(state.copy(projects = state.projects + Project(code, newName.trim(), selectedCustomer)))
+                            newName = ""; newCode = ""; selectedCustomer = ""
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
@@ -79,85 +64,58 @@ fun ProjectsScreen(state: AppState, onChange: (AppState) -> Unit) {
 
         Title("Mevcut Projeler ve Geçmiş")
         
-        // PROJELER LİSTESİ (AÇILIR KARTLAR)
         state.projects.forEachIndexed { i, p ->
             var isExpanded by remember { mutableStateOf(false) }
             val rotationState by animateFloatAsState(if (isExpanded) 180f else 0f)
 
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                shape = RoundedCornerShape(10.dp),
-                modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp).clickable { isExpanded = !isExpanded }
-            ) {
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(10.dp), modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp).clickable { isExpanded = !isExpanded }) {
                 Column {
-                    // Kart Başlığı (Tıklanabilir)
                     Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text(p.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary)
-                            Text("Kod: ${p.code}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Kod: ${p.code} | Firma: ${p.customerName}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Icon(
-                            imageVector = Icons.Default.KeyboardArrowDown,
-                            contentDescription = "Detayları Gör",
-                            modifier = Modifier.rotate(rotationState)
-                        )
+                        Icon(Icons.Default.KeyboardArrowDown, "Detaylar", modifier = Modifier.rotate(rotationState))
                     }
 
-                    // Açılır İçerik (Geçmiş Detayları)
                     AnimatedVisibility(visible = isExpanded) {
                         Column(Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp)) {
                             Divider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
                             Spacer(Modifier.height(8.dp))
                             
-                            // Proje bilgilerini düzenleme alanları
                             Text("Proje Bilgilerini Düzenle", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                            Field("Kod", p.code) { v ->
-                                onChange(state.copy(projects = state.projects.toMutableList().also { l -> l[i] = p.copy(code = v) }))
-                            }
-                            Field("Ad", p.name) { v ->
-                                onChange(state.copy(projects = state.projects.toMutableList().also { l -> l[i] = p.copy(name = v) }))
-                            }
+                            Field("Kod", p.code) { v -> onChange(state.copy(projects = state.projects.toMutableList().also { l -> l[i] = p.copy(code = v) })) }
+                            Field("Ad", p.name) { v -> onChange(state.copy(projects = state.projects.toMutableList().also { l -> l[i] = p.copy(name = v) })) }
+                            Picker("Firma", p.customerName, customerNames, { v -> onChange(state.copy(projects = state.projects.toMutableList().also { l -> l[i] = p.copy(customerName = v) })) }, Modifier.fillMaxWidth())
                             
-                            TextButton(
-                                onClick = {
-                                    onChange(state.copy(projects = state.projects.toMutableList().also { l -> l.removeAt(i) }))
-                                },
-                                modifier = Modifier.align(Alignment.End)
-                            ) { Text("Projeyi Sil", color = MaterialTheme.colorScheme.error) }
+                            TextButton(onClick = { onChange(state.copy(projects = state.projects.toMutableList().also { l -> l.removeAt(i) })) }, modifier = Modifier.align(Alignment.End)) { Text("Projeyi Sil", color = MaterialTheme.colorScheme.error) }
 
                             Divider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
                             Spacer(Modifier.height(8.dp))
 
-                            Text("Çalışma Geçmişi", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                            
                             val projectFullName = "${p.code} - ${p.name}"
                             
-                            // Tüm haftalardan bu projeye ait kayıtları bul
+                            // Çalışma Geçmişi
                             val projEntries = weeksData.values.flatten().filter { it.project == projectFullName }
-                            
+                            Text("Çalışma Geçmişi", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             if (projEntries.isEmpty()) {
-                                Text("Bu projede henüz çalışma kaydı yok.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("Kayıt yok.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             } else {
-                                val totalHours = r2(projEntries.sumOf { it.hours() })
-                                Text("Toplam Çalışma: $totalHours Saat", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                                
+                                Text("Toplam: ${r2(projEntries.sumOf { it.hours() })} Saat", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                                 projEntries.sortedBy { it.day }.forEach { e ->
-                                    Text("• ${dayTr[e.day]}: ${e.worker} (${hm(e.start)} - ${hm(e.end)}) = ${fmt(e.hours())} saat", fontSize = 12.sp)
+                                    Text("• ${dayTr[e.day]}: ${e.worker} (${fmt(e.hours())} sa)", fontSize = 12.sp)
                                 }
                             }
 
                             Spacer(Modifier.height(12.dp))
-                            Text("Fiş Geçmişi", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             
-                            // Tüm haftalardan bu projeye ait fişleri bul
+                            // Fiş Geçmişi
                             val projExpenses = expensesData.values.flatten().filter { it.project == projectFullName }
-                            
+                            Text("Fiş Geçmişi", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             if (projExpenses.isEmpty()) {
-                                Text("Bu projede henüz fiş kaydı yok.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("Kayıt yok.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             } else {
-                                val totalCost = r2(projExpenses.sumOf { it.amount })
-                                Text("Toplam Gider: €$totalCost", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                                
+                                Text("Toplam: €${r2(projExpenses.sumOf { it.amount })}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                                 projExpenses.sortedBy { it.day }.forEach { ex ->
                                     Text("• ${dayTr[ex.day]}: ${ex.category} - €${ex.amount}", fontSize = 12.sp)
                                 }
