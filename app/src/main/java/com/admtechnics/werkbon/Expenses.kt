@@ -16,9 +16,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -150,9 +153,7 @@ fun downscaleReceipt(file: File) {
             )
         }
         file.outputStream().use { out -> bmp.compress(Bitmap.CompressFormat.JPEG, 80, out) }
-    } catch (e: Exception) {
-        // büyük/bozuk dosyada orijinali olduğu gibi bırak
-    }
+    } catch (e: Exception) {}
 }
 
 fun decodeSampled(file: File, sample: Int): ImageBitmap? {
@@ -199,13 +200,17 @@ fun ExpenseCard(
 ) {
     val ctx = LocalContext.current
     var txt by remember(e.id) { mutableStateOf(if (e.amount == 0.0) "" else fmt(e.amount)) }
-    Card(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-        Column(Modifier.padding(8.dp)) {
-            // Gün seçici silindi, çünkü gün dışarıdan geliyor
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        shape = RoundedCornerShape(10.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+    ) {
+        Column(Modifier.padding(10.dp)) {
             Picker("Proje", e.project, projects, { v -> onChange(e.copy(project = v)) }, Modifier.fillMaxWidth())
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(6.dp))
             Picker("Gider", e.category, cats, { v -> onChange(e.copy(category = v)) }, Modifier.fillMaxWidth())
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(6.dp))
             OutlinedTextField(
                 value = txt,
                 onValueChange = { v ->
@@ -214,21 +219,22 @@ fun ExpenseCard(
                 },
                 label = { Text("Tutar (€)") },
                 singleLine = true,
+                shape = RoundedCornerShape(8.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(6.dp))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedButton(onClick = onCamera) { Text("📷 Çek") }
-                OutlinedButton(onClick = onGallery) { Text("🖼 Galeri") }
+                OutlinedButton(onClick = onCamera, shape = RoundedCornerShape(8.dp)) { Text("📷 Çek") }
+                OutlinedButton(onClick = onGallery, shape = RoundedCornerShape(8.dp)) { Text("🖼 Galeri") }
                 if (e.image.isNotEmpty()) {
                     Thumb(File(receiptsDir(ctx), e.image))
                 }
             }
-            TextButton(onClick = onDelete) { Text("Fişi sil") }
+            TextButton(onClick = onDelete) { Text("Fişi sil", color = MaterialTheme.colorScheme.error) }
         }
     }
 }
@@ -244,103 +250,3 @@ fun ExpensesSection(state: AppState, key: String, day: Int) {
     
     var pendingFile by rememberSaveable { mutableStateOf("") }
     var pendingIdx by rememberSaveable { mutableStateOf(-1) }
-    val projects = state.projects.sortedByDescending { it.code }.map { "${it.code} - ${it.name}" }
-    val cats = state.categories
-
-    fun update(list: List<Expense>) {
-        val currentAll = ExpenseStore.load(ctx)[key] ?: emptyList()
-        val otherDays = currentAll.filter { it.day != day }
-        val newListForAll = (otherDays + list).sortedBy { it.day }
-        
-        val all = LinkedHashMap(ExpenseStore.load(ctx))
-        all[key] = newListForAll
-        ExpenseStore.save(ctx, all)
-        
-        items = list
-    }
-
-    fun attachImage(name: String) {
-        if (pendingIdx in items.indices) {
-            val l = items.toMutableList()
-            l[pendingIdx] = l[pendingIdx].copy(image = name)
-            update(l)
-        }
-    }
-
-    val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
-        val name = pendingFile
-        if (ok && name.isNotEmpty()) {
-            downscaleReceipt(File(receiptsDir(ctx), name))
-            attachImage(name)
-        }
-        pendingFile = ""
-    }
-
-    val gallery = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri != null) {
-            val name = "r_${System.currentTimeMillis()}.jpg"
-            val f = File(receiptsDir(ctx), name)
-            try {
-                ctx.contentResolver.openInputStream(uri)?.use { input ->
-                    f.outputStream().use { out -> input.copyTo(out) }
-                }
-                downscaleReceipt(f)
-                attachImage(name)
-            } catch (ex: Exception) {
-                // seçilen dosya okunamadı
-            }
-        }
-    }
-
-    fun takePhoto(idx: Int) {
-        val name = "r_${System.currentTimeMillis()}.jpg"
-        val f = File(receiptsDir(ctx), name)
-        f.createNewFile()
-        val uri = FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", f)
-        pendingFile = name
-        pendingIdx = idx
-        camera.launch(uri)
-    }
-
-    val total = r2(items.map { it.amount }.sum())
-    val totalTxt = "%.2f".format(total)
-
-    Column(Modifier.fillMaxWidth()) {
-        if (items.isNotEmpty()) {
-            Text("Bu günün fiş toplamı: €$totalTxt", fontWeight = FontWeight.Bold)
-        }
-        items.forEachIndexed { idx, e ->
-            ExpenseCard(
-                e = e,
-                projects = projects,
-                cats = cats,
-                onChange = { ne ->
-                    update(items.toMutableList().also { l -> l[idx] = ne })
-                },
-                onCamera = { takePhoto(idx) },
-                onGallery = {
-                    pendingIdx = idx
-                    gallery.launch("image/*")
-                },
-                onDelete = {
-                    if (e.image.isNotEmpty()) File(receiptsDir(ctx), e.image).delete()
-                    update(items.toMutableList().also { l -> l.removeAt(idx) })
-                }
-            )
-        }
-        if (projects.isNotEmpty() && cats.isNotEmpty()) {
-            Button(onClick = {
-                update(
-                    items + Expense(
-                        id = System.currentTimeMillis().toString(),
-                        day = day,
-                        project = projects[0],
-                        category = cats[0],
-                        amount = 0.0,
-                        image = ""
-                    )
-                )
-            }) { Text("+ Fiş ekle") }
-        }
-    }
-}
