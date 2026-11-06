@@ -2,12 +2,9 @@ package com.admtechnics.werkbon
 
 import android.content.Context
 import android.content.Intent
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.RectF
 import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import androidx.compose.foundation.layout.*
@@ -41,13 +38,14 @@ fun ProformaScreen(state: AppState, onChange: (AppState) -> Unit) {
     var newPrice by remember { mutableStateOf("") }
 
     val projects = state.projects.map { "${it.code} - ${it.name}" }
+    val projectOptions = listOf("Seçiniz") + projects
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(defaultElevation = 3.dp), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
             Column(Modifier.padding(16.dp)) {
                 Title("Yeni Proforma Oluştur")
                 
-                Picker("Proje Seçin", if (selectedProject.isEmpty()) "Seçiniz" else selectedProject, listOf("Seçiniz") + projects, { 
+                Picker("Proje Seçin", if (selectedProject.isEmpty()) "Seçiniz" else selectedProject, projectOptions, { 
                     if (it != "Seçiniz") selectedProject = it else selectedProject = ""
                 }, Modifier.fillMaxWidth())
                 
@@ -65,8 +63,8 @@ fun ProformaScreen(state: AppState, onChange: (AppState) -> Unit) {
                 }
                 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = newDesc, onValueChange = { newDesc = it }, label = { Text("Açıklama (örn. Gewerkte uren)") }, modifier = Modifier.weight(2f), shape = RoundedCornerShape(8.dp))
-                    OutlinedTextField(value = newQty, onValueChange = { newQty = it }, label = { Text("Adet/Saat") }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(8.dp))
+                    OutlinedTextField(value = newDesc, onValueChange = { newDesc = it }, label = { Text("Açıklama") }, modifier = Modifier.weight(2f), shape = RoundedCornerShape(8.dp))
+                    OutlinedTextField(value = newQty, onValueChange = { newQty = it }, label = { Text("Adet") }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(8.dp))
                     OutlinedTextField(value = newPrice, onValueChange = { newPrice = it }, label = { Text("Fiyat (€)") }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(8.dp))
                 }
                 Spacer(Modifier.height(8.dp))
@@ -90,7 +88,7 @@ fun ProformaScreen(state: AppState, onChange: (AppState) -> Unit) {
                         onChange(state.copy(proformas = state.proformas + newProf))
                         selectedProject = ""; items = emptyList(); note = ""
                     }
-                }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) { Text("Proformayı Kaydet ve Listeye Ekle") }
+                }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) { Text("Proformayı Kaydet") }
             }
         }
 
@@ -105,7 +103,6 @@ fun ProformaScreen(state: AppState, onChange: (AppState) -> Unit) {
                         Text("Toplam: €%.2f".format(total), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                     }
                     
-                    // PDF İndir Butonu
                     Button(
                         onClick = { createProformaPdf(ctx, state, prof) },
                         shape = RoundedCornerShape(8.dp),
@@ -124,7 +121,7 @@ fun ProformaScreen(state: AppState, onChange: (AppState) -> Unit) {
     }
 }
 
-// PROFORMA PDF OLUŞTURUCU
+// PROFORMA PDF OLUŞTURUCU (Görsele Uygun)
 fun createProformaPdf(ctx: Context, state: AppState, prof: Proforma) {
     val doc = PdfDocument()
     val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create()
@@ -139,18 +136,19 @@ fun createProformaPdf(ctx: Context, state: AppState, prof: Proforma) {
     val leftMargin = 50f
     val rightMargin = 545f
 
-    // Firma Bul
     val proj = state.projects.find { "${it.code} - ${it.name}" == prof.projectName }
     val customer = state.customers.find { it.name == proj?.customerName }
 
-    // SOL ÜST: Müşteri Bilgileri
+    // SOL: Müşteri Bilgileri
     if (customer != null) {
         canvas.drawText(customer.name, leftMargin, y, boldPaint); y += 15f
         canvas.drawText(customer.address, leftMargin, y, textPaint); y += 15f
         canvas.drawText("BTW: ${customer.btw}", leftMargin, y, textPaint);
+    } else {
+        canvas.drawText("Müşteri Bilgisi Yok", leftMargin, y, boldPaint)
     }
 
-    // SAĞ ÜST: Kendi Firma Bilgilerimiz
+    // SAĞ: Firma Bilgileri
     y = 50f
     val rightX = 350f
     canvas.drawText(state.compName, rightX, y, boldPaint); y += 15f
@@ -161,15 +159,15 @@ fun createProformaPdf(ctx: Context, state: AppState, prof: Proforma) {
     y = 150f
     canvas.drawText(prof.date, leftMargin, y, textPaint)
     
-    // PROJE ADI VE HAFTA
+    // PROJE ADI VE KODU
     y += 40f
     val projName = proj?.name ?: prof.projectName
     val projCode = proj?.code ?: ""
     canvas.drawText("$projName - $projCode", leftMargin, y, boldPaint)
     
-    // KALEMLER (TABLO)
+    // KALEMLER TABLOSU
     y += 30f
-    items@ for (item in prof.items) {
+    for (item in prof.items) {
         canvas.drawText(item.description, leftMargin, y, textPaint)
         canvas.drawText("${item.quantity} x €${"%.2f".format(item.price)}", 300f, y, textPaint)
         canvas.drawText("€ ${"%.2f".format(item.quantity * item.price)}", rightMargin - 50f, y, textPaint)
@@ -193,13 +191,13 @@ fun createProformaPdf(ctx: Context, state: AppState, prof: Proforma) {
         }
     }
 
-    // FOOTER (Yazının en altına)
+    // ALT BİLGİ
     y = 750f
     canvas.drawText("Bedankt voor uw vertrouwen!", leftMargin, y, boldPaint)
 
     doc.finishPage(page)
     
-    // Kaydet
+    // Dosyayı oluştur ve paylaş
     val file = File(ctx.filesDir, "Proforma_${prof.projectName.replace(" ", "_")}.pdf")
     try {
         val out = FileOutputStream(file)
@@ -207,7 +205,6 @@ fun createProformaPdf(ctx: Context, state: AppState, prof: Proforma) {
         out.close()
         doc.close()
         
-        // Paylaş
         val uri = FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", file)
         val intent = Intent(Intent.ACTION_SEND).apply {
             type = "application/pdf"
