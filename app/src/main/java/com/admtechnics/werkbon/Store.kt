@@ -6,15 +6,19 @@ import org.json.JSONObject
 import java.io.File
 
 data class Worker(val name: String, val rate: Double)
-data class Project(val code: String, val name: String)
 
-// YENİ: Proforma Modeli
-data class Proforma(
-    val id: String,
-    val projectName: String,
-    val date: String,
-    val items: List<ProformaItem>,
-    val note: String = ""
+// YENİ: Müşteri/Firma Modeli
+data class Customer(
+    val name: String,
+    val address: String,
+    val btw: String
+)
+
+// Proje modeli güncellendi (Müşteri adı eklendi)
+data class Project(
+    val code: String, 
+    val name: String,
+    val customerName: String = "" 
 )
 
 data class ProformaItem(
@@ -33,7 +37,8 @@ data class AppState(
     val workers: List<Worker>,
     val projects: List<Project>,
     val categories: List<String>,
-    val proformas: List<Proforma> = emptyList() // YENİ
+    val proformas: List<Proforma> = emptyList(),
+    val customers: List<Customer> = emptyList() // YENİ
 )
 
 object Store {
@@ -48,15 +53,15 @@ object Store {
         compLogoPath = "",
         workers = listOf(Worker("Adem", 25.0), Worker("Melih", 20.0)),
         projects = listOf(
-            Project("E260001", "Kruidvat Diepenbeek"),
-            Project("E260002", "ICI PARIS XL Hasselt"),
-            Project("E260246", "Kruidvat Brakel")
+            Project("E260001", "Kruidvat Diepenbeek", "Kruidvat"),
+            Project("E260002", "ICI PARIS XL Hasselt", "ICI Paris XL")
         ),
-        categories = listOf(
-            "Malzeme", "Su borusu", "Şalter", "Parking",
-            "Kabel", "Verlichting", "Eten", "Hotel"
-        ),
-        proformas = emptyList()
+        categories = listOf("Malzeme", "Parking", "Eten", "Hotel"),
+        proformas = emptyList(),
+        customers = listOf(
+            Customer("Kruidvat", "België", "BE 0123.456.789"),
+            Customer("ICI Paris XL", "België", "BE 987.654.321")
+        )
     )
 
     fun load(ctx: Context): AppState {
@@ -83,25 +88,23 @@ object Store {
         o.put("workers", wa)
         
         val pa = JSONArray()
-        for (p in s.projects) pa.put(JSONObject().put("code", p.code).put("name", p.name))
+        for (p in s.projects) pa.put(JSONObject().put("code", p.code).put("name", p.name).put("customerName", p.customerName))
         o.put("projects", pa)
         
         val ca = JSONArray()
         for (c in s.categories) ca.put(c)
         o.put("categories", ca)
 
-        // YENİ: Proformaları kaydet
+        val cua = JSONArray()
+        for (c in s.customers) cua.put(JSONObject().put("name", c.name).put("address", c.address).put("btw", c.btw))
+        o.put("customers", cua)
+
+        // Proformalar (Basit tutuldu)
         val pra = JSONArray()
         for (pr in s.proformas) {
-            val prObj = JSONObject()
-                .put("id", pr.id)
-                .put("projectName", pr.projectName)
-                .put("date", pr.date)
-                .put("note", pr.note)
+            val prObj = JSONObject().put("id", pr.id).put("projectName", pr.projectName).put("date", pr.date).put("note", pr.note)
             val ia = JSONArray()
-            for (item in pr.items) {
-                ia.put(JSONObject().put("description", item.description).put("quantity", item.quantity).put("price", item.price))
-            }
+            for (item in pr.items) ia.put(JSONObject().put("description", item.description).put("quantity", item.quantity).put("price", item.price))
             prObj.put("items", ia)
             pra.put(prObj)
         }
@@ -117,15 +120,24 @@ object Store {
             val x = wa.getJSONObject(i)
             workers.add(Worker(x.getString("name"), x.optDouble("rate", 20.0)))
         }
+        
         val projects = ArrayList<Project>()
         val pa = o.optJSONArray("projects") ?: JSONArray()
         for (i in 0 until pa.length()) {
             val x = pa.getJSONObject(i)
-            projects.add(Project(x.getString("code"), x.getString("name")))
+            projects.add(Project(x.getString("code"), x.getString("name"), x.optString("customerName", "")))
         }
+        
         val cats = ArrayList<String>()
         val ca = o.optJSONArray("categories") ?: JSONArray()
         for (i in 0 until ca.length()) cats.add(ca.getString(i))
+
+        val customers = ArrayList<Customer>()
+        val cua = o.optJSONArray("customers") ?: JSONArray()
+        for (i in 0 until cua.length()) {
+            val x = cua.getJSONObject(i)
+            customers.add(Customer(x.getString("name"), x.getString("address"), x.getString("btw")))
+        }
 
         val proformas = ArrayList<Proforma>()
         val pra = o.optJSONArray("proformas") ?: JSONArray()
@@ -137,10 +149,7 @@ object Store {
                 val iObj = ia.getJSONObject(j)
                 items.add(ProformaItem(iObj.getString("description"), iObj.optDouble("quantity", 1.0), iObj.optDouble("price", 0.0)))
             }
-            proformas.add(Proforma(
-                pObj.getString("id"), pObj.getString("projectName"), 
-                pObj.getString("date"), items, pObj.optString("note", "")
-            ))
+            proformas.add(Proforma(pObj.getString("id"), pObj.getString("projectName"), pObj.getString("date"), items, pObj.optString("note", "")))
         }
 
         return AppState(
@@ -153,7 +162,8 @@ object Store {
             workers = workers,
             projects = projects,
             categories = cats,
-            proformas = proformas
+            proformas = proformas,
+            customers = customers
         )
     }
 }
