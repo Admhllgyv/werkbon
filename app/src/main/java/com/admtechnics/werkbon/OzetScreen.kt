@@ -1,6 +1,8 @@
 package com.admtechnics.werkbon
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -40,7 +42,7 @@ fun OzetScreen(state: AppState) {
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
         
-        // HAFTA SEÇİCİ KARTI
+        // HAFTA SEÇİCİ
         Card(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
@@ -50,12 +52,7 @@ fun OzetScreen(state: AppState) {
             Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 TextButton(onClick = { shift(-1L) }) { Text("◀", fontSize = 18.sp) }
                 Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        "$year - Hafta $week",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    Text("$year - Hafta $week", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                     Text("${mon.format(dateFmt)} – ${mon.plusDays(4).format(dateFmt)}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 TextButton(onClick = { shift(1L) }) { Text("▶", fontSize = 18.sp) }
@@ -67,97 +64,154 @@ fun OzetScreen(state: AppState) {
             return@Column
         }
 
-        // ÇALIŞMA KAYITLARI TABLOSU
+        // 1. TÜM ÇALIŞMA KAYITLARI TABLOSU (Yatay Kaydırılabilir)
         if (entries.isNotEmpty()) {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
-            ) {
-                Column(Modifier.padding(12.dp)) {
-                    Text("Çalışma Kayıtları", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary)
-                    Spacer(Modifier.height(8.dp))
-
-                    // Tablo Başlıkları
-                    Row(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.primary, RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp)).padding(8.dp)) {
-                        Text("Gün", Modifier.weight(1.2f), color = MaterialTheme.colorScheme.onPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        Text("Proje", Modifier.weight(1.5f), color = MaterialTheme.colorScheme.onPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        Text("Çalışan", Modifier.weight(1f), color = MaterialTheme.colorScheme.onPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        Text("Saat", Modifier.weight(1f), color = MaterialTheme.colorScheme.onPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    }
-
-                    // Tablo Satırları
-                    entries.sortedBy { it.day }.forEachIndexed { index, e ->
-                        val bgColor = if (index % 2 == 0) Color.Transparent else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                        Row(Modifier.fillMaxWidth().background(bgColor).padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text(dayTr[e.day], Modifier.weight(1.2f), fontSize = 11.sp)
-                            Text(e.project.substringAfter("- "), Modifier.weight(1.5f), fontSize = 11.sp, maxLines = 1)
-                            Text(e.worker, Modifier.weight(1f), fontSize = 11.sp, fontWeight = FontWeight.Medium)
-                            Text("${fmt(e.hours())} s", Modifier.weight(1f), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                        }
-                        Divider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f))
-                    }
-                }
-            }
-        }
-
-        // ÇALIŞAN BAZLI ÖZET
-        if (entries.isNotEmpty()) {
-            val workerHours = entries.groupBy { it.worker }.mapValues { (_, list) -> r2(list.sumOf { it.hours() }) }
+            Text("📋 Tüm Çalışma Kayıtları", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 8.dp))
             
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
-            ) {
-                Column(Modifier.padding(12.dp)) {
-                    Text("Çalışan Bazlı Toplam Saat", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.secondary)
-                    Spacer(Modifier.height(8.dp))
-                    workerHours.forEach { (worker, hours) ->
-                        Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text("• $worker", Modifier.weight(1f), fontWeight = FontWeight.Medium)
-                            Text("$hours Saat", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                        }
-                    }
-                }
-            }
-        }
-
-        // FİŞ / GİDER ÖZETİ
-        if (expenses.isNotEmpty()) {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
-            ) {
-                Column(Modifier.padding(12.dp)) {
-                    Text("Fiş / Gider Detayları", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary)
-                    Spacer(Modifier.height(8.dp))
-
-                    expenses.sortedBy { it.day }.forEach { ex ->
-                        Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Column(Modifier.weight(1f)) {
-                                Text("${ex.category} (${dayTr[ex.day]})", fontWeight = FontWeight.Medium, fontSize = 13.sp)
-                                Text(ex.project.substringAfter("- "), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            Text("€${ex.amount}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.secondary)
-                        }
-                        Divider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f))
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp), shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
+                Column(Modifier.horizontalScroll(rememberScrollState())) {
+                    // Tablo Başlıkları
+                    Row(Modifier.background(MaterialTheme.colorScheme.primary)) {
+                        TableCell("Gün", 100.dp, isHeader = true)
+                        TableCell("Tarih", 110.dp, isHeader = true)
+                        TableCell("Proje", 220.dp, isHeader = true)
+                        TableCell("Çalışan", 100.dp, isHeader = true)
+                        TableCell("Başlangıç", 90.dp, isHeader = true)
+                        TableCell("Mola", 80.dp, isHeader = true)
+                        TableCell("Bitiş", 80.dp, isHeader = true)
+                        TableCell("Saat", 80.dp, isHeader = true)
                     }
                     
+                    // Tablo Satırları
+                    entries.sortedBy { it.day }.forEachIndexed { index, e ->
+                        val bgColor = if (index % 2 == 0) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                        Row(Modifier.background(bgColor).border(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))) {
+                            TableCell(dayTr[e.day], 100.dp)
+                            TableCell(mon.plusDays(e.day.toLong()).format(dateFmt), 110.dp)
+                            TableCell(e.project, 220.dp)
+                            TableCell(e.worker, 100.dp)
+                            TableCell(hm(e.start), 90.dp)
+                            TableCell(hm(e.pause), 80.dp)
+                            TableCell(hm(e.end), 80.dp)
+                            TableCell("${fmt(e.hours())} s", 80.dp, isBold = true)
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. ÇALIŞAN BAZLI TOPLAM SAATLER
+        if (entries.isNotEmpty()) {
+            Text("👷 Çalışan Bazlı Toplam Saatler", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 8.dp))
+            val workerHours = entries.groupBy { it.worker }.mapValues { (_, list) -> r2(list.sumOf { it.hours() }) }
+            
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp), shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
+                Column {
+                    Row(Modifier.background(MaterialTheme.colorScheme.primary)) {
+                        TableCell("Çalışan", 200.dp, isHeader = true)
+                        TableCell("Saat", 100.dp, isHeader = true)
+                    }
+                    workerHours.forEach { (worker, hours) ->
+                        Row(Modifier.border(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))) {
+                            TableCell(worker, 200.dp)
+                            TableCell(fmt(hours), 100.dp, isBold = true)
+                        }
+                    }
+                }
+            }
+        }
+
+        // 3. PROJE BAZLI TOPLAM SAATLER
+        if (entries.isNotEmpty()) {
+            Text("📁 Proje Bazlı Toplam Saatler", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 8.dp))
+            val projHours = entries.groupBy { it.project }.mapValues { (_, list) -> r2(list.sumOf { it.hours() }) }
+            
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp), shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
+                Column {
+                    Row(Modifier.background(MaterialTheme.colorScheme.primary)) {
+                        TableCell("Proje", 300.dp, isHeader = true)
+                        TableCell("Saat", 100.dp, isHeader = true)
+                    }
+                    projHours.forEach { (proj, hours) ->
+                        Row(Modifier.border(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))) {
+                            TableCell(proj, 300.dp)
+                            TableCell(fmt(hours), 100.dp, isBold = true)
+                        }
+                    }
+                }
+            }
+        }
+
+        // 4. PROJE & ÇALIŞAN MATRİSİ
+        if (entries.isNotEmpty()) {
+            Text("🔍 Proje & Çalışan Detay Matrisi", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 8.dp))
+            
+            val workers = entries.map { it.worker }.distinct().sorted()
+            val projects = entries.map { it.project }.distinct().sorted()
+
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp), shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
+                Column(Modifier.horizontalScroll(rememberScrollState())) {
+                    Row(Modifier.background(MaterialTheme.colorScheme.primary)) {
+                        TableCell("Çalışan", 120.dp, isHeader = true)
+                        TableCell("Proje", 250.dp, isHeader = true)
+                        workers.forEach { w -> TableCell(w, 100.dp, isHeader = true) }
+                    }
+                    projects.forEach { proj ->
+                        Row(Modifier.border(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))) {
+                            TableCell("", 120.dp) // Boş bırakılan sol sütun (Görseldeki gibi)
+                            TableCell(proj, 250.dp)
+                            workers.forEach { worker ->
+                                val h = entries.filter { it.worker == worker && it.project == proj }.sumOf { it.hours() }
+                                TableCell(if (h > 0) fmt(r2(h)) else "0.0", 100.dp)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 5. FİŞ / GİDER DETAYLARI
+        if (expenses.isNotEmpty()) {
+            Text("💶 Haftaya Ait Fiş ve Gider Detayları", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 8.dp))
+            
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp), shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(12.dp)) {
+                    expenses.sortedBy { it.day }.forEach { ex ->
+                        Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text("🏷️ ${ex.category}", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Text("📁 ${ex.project} | 📅 ${dayTr[ex.day]}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Text("€${"%.2f".format(ex.amount)}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, fontSize = 16.sp)
+                        }
+                        Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                    }
                     Spacer(Modifier.height(8.dp))
                     val totalCost = r2(expenses.sumOf { it.amount })
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        Text("Toplam Gider: ", fontWeight = FontWeight.Bold)
-                        Text("€$totalCost", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.secondary)
+                        Text("Toplam Gider: ", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text("€$totalCost", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, fontSize = 16.sp)
                     }
                 }
             }
         }
         
         Spacer(Modifier.height(24.dp))
+    }
+}
+
+// YARDIMCI TABLO HÜCRESİ TASARIMI (Streamlit'teki gibi)
+@Composable
+fun TableCell(text: String, width: androidx.compose.ui.unit.Dp, isHeader: Boolean = false, isBold: Boolean = false) {
+    Box(
+        modifier = Modifier.width(width).padding(horizontal = 8.dp, vertical = 10.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Text(
+            text = text,
+            color = if (isHeader) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+            fontWeight = if (isHeader || isBold) FontWeight.Bold else FontWeight.Normal,
+            fontSize = 12.sp
+        )
     }
 }
