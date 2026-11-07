@@ -8,14 +8,19 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Assignment
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Settings
@@ -23,6 +28,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -30,7 +37,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
-import com.admtechnics.werkbon.ui.theme.WerkbonTheme
+import com.admtechnics.werkbon.ui.theme.*
 import java.io.File
 import java.io.FileOutputStream
 
@@ -38,8 +45,17 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            WerkbonTheme {
-                WerkbonApp(applicationContext)
+            val context = applicationContext
+            var state by remember { mutableStateOf(Store.load(context)) }
+            
+            // Seçilen temaya göre rengi al
+            val primaryColor = getPrimaryColor(state.themeName)
+
+            WerkbonTheme(primaryColor = primaryColor) {
+                WerkbonApp(state, onChange = { newState ->
+                    state = newState
+                    Store.save(context, newState)
+                })
             }
         }
     }
@@ -47,13 +63,9 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WerkbonApp(ctx: Context) {
-    var state by remember { mutableStateOf(Store.load(ctx)) }
+fun WerkbonApp(state: AppState, onChange: (AppState) -> Unit) {
+    val ctx = LocalContext.current
     var tab by remember { mutableStateOf(0) }
-    val change: (AppState) -> Unit = { s ->
-        state = s
-        Store.save(ctx, s)
-    }
 
     LaunchedEffect(Unit) { BackupManager.autoBackupIfNeeded(ctx) }
 
@@ -61,6 +73,7 @@ fun WerkbonApp(ctx: Context) {
     val tabs = listOf(
         TabItem("Werkbon", Icons.Default.Assignment),
         TabItem("Özet", Icons.Default.BarChart),
+        TabItem("Aylık", Icons.Default.CalendarMonth),
         TabItem("Projeler", Icons.Default.Folder),
         TabItem("Proforma", Icons.Default.Description),
         TabItem("Ayarlar", Icons.Default.Settings)
@@ -83,7 +96,7 @@ fun WerkbonApp(ctx: Context) {
                         selected = tab == i,
                         onClick = { tab = i },
                         icon = { Icon(item.icon, contentDescription = item.title) },
-                        label = { Text(item.title, fontSize = 10.sp, fontWeight = if (tab == i) FontWeight.Bold else FontWeight.Normal) },
+                        label = { Text(item.title, fontSize = 9.sp, fontWeight = if (tab == i) FontWeight.Bold else FontWeight.Normal) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = MaterialTheme.colorScheme.primary,
                             selectedTextColor = MaterialTheme.colorScheme.primary,
@@ -98,9 +111,10 @@ fun WerkbonApp(ctx: Context) {
             when (tab) {
                 0 -> WerkbonScreen(state)
                 1 -> OzetScreen(state)
-                2 -> ProjectsScreen(state, change)
-                3 -> ProformaScreen(state, change) // Proforma güncellenecek
-                4 -> SettingsScreen(state, change)
+                2 -> AylikRaporScreen(state) // 3. Kısımda eklenecek
+                3 -> ProjectsScreen(state, onChange)
+                4 -> ProformaScreen(state, onChange)
+                5 -> SettingsScreen(state, onChange)
             }
         }
     }
@@ -127,8 +141,6 @@ fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit) {
     val ctx = LocalContext.current
     var newWorker by remember { mutableStateOf("") }
     var newCat by remember { mutableStateOf("") }
-    
-    // Yeni Müşteri State'leri
     var newCustomerName by remember { mutableStateOf("") }
     var newCustomerAddress by remember { mutableStateOf("") }
     var newCustomerBtw by remember { mutableStateOf("") }
@@ -167,6 +179,25 @@ fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit) {
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
         
+        // TEMA RENGİ SEÇİCİ
+        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(defaultElevation = 3.dp), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
+            Column(Modifier.padding(16.dp)) {
+                Title("🎨 Uygulama Tema Rengi")
+                Text("Uygulamanın genel görünümünü değiştirmek için bir renk seçin.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(12.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    val colors = listOf("blue" to ThemeBlue, "green" to ThemeGreen, "red" to ThemeRed, "orange" to ThemeOrange, "purple" to ThemePurple, "dark" to ThemeDarkGray)
+                    colors.forEach { (key, color) ->
+                        Box(
+                            modifier = Modifier.size(40.dp).clip(CircleShape).background(color)
+                                .border(if (state.themeName == key) 3.dp else 0.dp, Color.White, CircleShape)
+                                .clickable { onChange(state.copy(themeName = key)) }
+                        )
+                    }
+                }
+            }
+        }
+
         // YEDEKLEME KARTI
         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
             Column(Modifier.padding(16.dp)) {
@@ -190,12 +221,10 @@ fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit) {
             }
         }
 
-        // MÜŞTERİLER KARTI (YENİ)
+        // MÜŞTERİLER KARTI
         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(defaultElevation = 3.dp), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
             Column(Modifier.padding(16.dp)) {
                 Title("Firmalar / Müşteriler")
-                
-                // Müşteri Listesi
                 state.customers.forEachIndexed { i, c ->
                     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
@@ -206,9 +235,7 @@ fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit) {
                     }
                     Divider()
                 }
-                
                 Spacer(Modifier.height(8.dp))
-                Text("Yeni Firma Ekle", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 Field("Firma Adı", newCustomerName) { newCustomerName = it }
                 Field("Adres", newCustomerAddress) { newCustomerAddress = it }
                 Field("BTW Numarası", newCustomerBtw) { newCustomerBtw = it }
