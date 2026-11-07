@@ -6,32 +6,10 @@ import org.json.JSONObject
 import java.io.File
 
 data class Worker(val name: String, val rate: Double)
-
-data class Customer(
-    val name: String,
-    val address: String,
-    val btw: String
-)
-
-data class Project(
-    val code: String, 
-    val name: String,
-    val customerName: String = "" 
-)
-
-data class ProformaItem(
-    val description: String,
-    val quantity: Double,
-    val price: Double
-)
-
-data class Proforma(
-    val id: String,
-    val projectName: String,
-    val date: String,
-    val items: List<ProformaItem>,
-    val note: String = ""
-)
+data class Customer(val name: String, val address: String, val btw: String)
+data class Project(val code: String, val name: String, val customerName: String = "")
+data class ProformaItem(val description: String, val quantity: Double, val price: Double)
+data class Proforma(val id: String, val projectName: String, val date: String, val items: List<ProformaItem>, val note: String = "")
 
 data class AppState(
     val compName: String,
@@ -44,7 +22,8 @@ data class AppState(
     val projects: List<Project>,
     val categories: List<String>,
     val proformas: List<Proforma> = emptyList(),
-    val customers: List<Customer> = emptyList()
+    val customers: List<Customer> = emptyList(),
+    val themeName: String = "blue" // YENİ: Tema Tercihi
 )
 
 object Store {
@@ -67,7 +46,8 @@ object Store {
         customers = listOf(
             Customer("Kruidvat", "België", "BE 0123.456.789"),
             Customer("ICI Paris XL", "België", "BE 987.654.321")
-        )
+        ),
+        themeName = "blue"
     )
 
     fun load(ctx: Context): AppState {
@@ -88,6 +68,7 @@ object Store {
         o.put("compGsm", s.compGsm)
         o.put("compBtw", s.compBtw)
         o.put("compLogoPath", s.compLogoPath)
+        o.put("themeName", s.themeName) // YENİ
         
         val wa = JSONArray()
         for (w in s.workers) wa.put(JSONObject().put("name", w.name).put("rate", w.rate))
@@ -168,7 +149,8 @@ object Store {
             projects = projects,
             categories = cats,
             proformas = proformas,
-            customers = customers
+            customers = customers,
+            themeName = o.optString("themeName", "blue") // YENİ
         )
     }
 }
