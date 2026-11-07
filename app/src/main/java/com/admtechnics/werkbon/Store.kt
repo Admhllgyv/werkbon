@@ -23,7 +23,7 @@ data class AppState(
     val categories: List<String>,
     val proformas: List<Proforma> = emptyList(),
     val customers: List<Customer> = emptyList(),
-    val themeName: String = "blue" // YENİ: Tema Tercihi
+    val themeName: String = "blue"
 )
 
 object Store {
@@ -68,7 +68,7 @@ object Store {
         o.put("compGsm", s.compGsm)
         o.put("compBtw", s.compBtw)
         o.put("compLogoPath", s.compLogoPath)
-        o.put("themeName", s.themeName) // YENİ
+        o.put("themeName", s.themeName)
         
         val wa = JSONArray()
         for (w in s.workers) wa.put(JSONObject().put("name", w.name).put("rate", w.rate))
@@ -150,7 +150,10 @@ object Store {
             categories = cats,
             proformas = proformas,
             customers = customers,
-            themeName = o.optString("themeName", "blue") // YENİ
+            themeName = o.optString("themeName", "blue")
         )
     }
 }
+
+// EKSİK OLAN YARDIMCI FONKSİYON EKLENDİ
+fun fmt(d: Double): String = if (d % 1.0 == 0.0) d.toInt().toString() else d.toString()
