@@ -9,7 +9,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -28,7 +27,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -45,17 +43,15 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            val context = applicationContext
-            var state by remember { mutableStateOf(Store.load(context)) }
-            
-            // Seçilen temaya göre rengi al
+            val ctx = applicationContext
+            var state by remember { mutableStateOf(Store.load(ctx)) }
             val primaryColor = getPrimaryColor(state.themeName)
 
             WerkbonTheme(primaryColor = primaryColor) {
-                WerkbonApp(state, onChange = { newState ->
+                WerkbonApp(state) { newState ->
                     state = newState
-                    Store.save(context, newState)
-                })
+                    Store.save(ctx, newState)
+                }
             }
         }
     }
@@ -110,8 +106,8 @@ fun WerkbonApp(state: AppState, onChange: (AppState) -> Unit) {
         Box(Modifier.padding(pad).fillMaxSize()) {
             when (tab) {
                 0 -> WerkbonScreen(state)
-                1 -> OzetScreen(state)
-                2 -> AylikRaporScreen(state) // 3. Kısımda eklenecek
+                1 -> OzetScreen(state) 
+                2 -> AylikRaporScreen(state) // YENİ
                 3 -> ProjectsScreen(state, onChange)
                 4 -> ProformaScreen(state, onChange)
                 5 -> SettingsScreen(state, onChange)
@@ -129,18 +125,20 @@ fun Title(text: String) {
 fun Field(label: String, value: String, onValue: (String) -> Unit) {
     OutlinedTextField(
         value = value, onValueChange = onValue, label = { Text(label) },
-        singleLine = true, shape = RoundedCornerShape(10.dp),
-        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)
+        singleLine = true, shape = RoundedCornerShape(8.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
     )
 }
 
 fun fmt(d: Double): String = if (d % 1.0 == 0.0) d.toInt().toString() else d.toString()
 
+// AYARLAR EKRANI (Tema Renkleri Eklendi)
 @Composable
 fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit) {
     val ctx = LocalContext.current
     var newWorker by remember { mutableStateOf("") }
     var newCat by remember { mutableStateOf("") }
+    
     var newCustomerName by remember { mutableStateOf("") }
     var newCustomerAddress by remember { mutableStateOf("") }
     var newCustomerBtw by remember { mutableStateOf("") }
@@ -156,9 +154,9 @@ fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit) {
                 outputStream.close()
                 BackupManager.restoreData(ctx, backupFile)
                 onChange(Store.load(ctx))
-                Toast.makeText(ctx, "Yedek başarıyla geri yüklendi!", Toast.LENGTH_LONG).show()
+                Toast.makeText(ctx, "Yedek geri yüklendi!", Toast.LENGTH_LONG).show()
             } catch (e: Exception) {
-                Toast.makeText(ctx, "Geri yükleme hatası: ${e.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(ctx, "Hata: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -179,27 +177,36 @@ fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit) {
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
         
-        // TEMA RENGİ SEÇİCİ
-        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(defaultElevation = 3.dp), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
+        // TEMA RENKLERİ KARTI
+        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp), shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
             Column(Modifier.padding(16.dp)) {
                 Title("🎨 Uygulama Tema Rengi")
-                Text("Uygulamanın genel görünümünü değiştirmek için bir renk seçin.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(12.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    val colors = listOf("blue" to ThemeBlue, "green" to ThemeGreen, "red" to ThemeRed, "orange" to ThemeOrange, "purple" to ThemePurple, "dark" to ThemeDarkGray)
-                    colors.forEach { (key, color) ->
+                Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    val colors = listOf(
+                        "blue" to ThemeBlue, "green" to ThemeGreen, 
+                        "red" to ThemeRed, "orange" to ThemeOrange, 
+                        "purple" to ThemePurple, "dark" to ThemeDarkGray
+                    )
+                    colors.forEach { (name, color) ->
                         Box(
-                            modifier = Modifier.size(40.dp).clip(CircleShape).background(color)
-                                .border(if (state.themeName == key) 3.dp else 0.dp, Color.White, CircleShape)
-                                .clickable { onChange(state.copy(themeName = key)) }
-                        )
+                            modifier = Modifier
+                                .size(40.dp)
+                                .background(color, CircleShape)
+                                .clickable { onChange(state.copy(themeName = name)) }
+                                .padding(4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (state.themeName == name) {
+                                Text("✔", color = Color.White, fontSize = 18.sp)
+                            }
+                        }
                     }
                 }
             }
         }
 
         // YEDEKLEME KARTI
-        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
+        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp), shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
             Column(Modifier.padding(16.dp)) {
                 Title("💾 Veri Yedekleme")
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -221,38 +228,10 @@ fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit) {
             }
         }
 
-        // MÜŞTERİLER KARTI
-        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(defaultElevation = 3.dp), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
-            Column(Modifier.padding(16.dp)) {
-                Title("Firmalar / Müşteriler")
-                state.customers.forEachIndexed { i, c ->
-                    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text(c.name, fontWeight = FontWeight.Bold)
-                            Text(c.btw, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        TextButton(onClick = { onChange(state.copy(customers = state.customers.toMutableList().also { it.removeAt(i) })) }) { Text("Sil", color = MaterialTheme.colorScheme.error) }
-                    }
-                    Divider()
-                }
-                Spacer(Modifier.height(8.dp))
-                Field("Firma Adı", newCustomerName) { newCustomerName = it }
-                Field("Adres", newCustomerAddress) { newCustomerAddress = it }
-                Field("BTW Numarası", newCustomerBtw) { newCustomerBtw = it }
-                Button(onClick = {
-                    if (newCustomerName.isNotBlank()) {
-                        val newCustomer = Customer(newCustomerName.trim(), newCustomerAddress.trim(), newCustomerBtw.trim())
-                        onChange(state.copy(customers = state.customers + newCustomer))
-                        newCustomerName = ""; newCustomerAddress = ""; newCustomerBtw = ""
-                    }
-                }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) { Text("Firmayı Kaydet") }
-            }
-        }
-
         // FİRMA BİLGİLERİ KARTI
-        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(defaultElevation = 3.dp), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
+        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp), shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
             Column(Modifier.padding(16.dp)) {
-                Title("Kendi Firma Bilgileriniz")
+                Title("Firma Bilgileriniz")
                 Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     OutlinedButton(onClick = { logoPicker.launch("image/*") }, shape = RoundedCornerShape(8.dp)) {
                         Text(if (state.compLogoPath.isEmpty()) "🖼️ Logo Ekle" else "🖼️ Logoyu Değiştir")
@@ -266,39 +245,51 @@ fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit) {
             }
         }
 
+        // MÜŞTERİLER KARTI
+        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp), shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
+            Column(Modifier.padding(16.dp)) {
+                Title("Firmalar / Müşteriler")
+                state.customers.forEachIndexed { i, c ->
+                    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(c.name, fontWeight = FontWeight.Bold)
+                            Text(c.btw, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        TextButton(onClick = { onChange(state.copy(customers = state.customers.toMutableList().also { it.removeAt(i) })) }) { Text("Sil", color = MaterialTheme.colorScheme.error) }
+                    }
+                    Divider()
+                }
+                
+                Spacer(Modifier.height(8.dp))
+                Text("Yeni Firma Ekle", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Field("Firma Adı", newCustomerName) { newCustomerName = it }
+                Field("Adres", newCustomerAddress) { newCustomerAddress = it }
+                Field("BTW Numarası", newCustomerBtw) { newCustomerBtw = it }
+                Button(onClick = {
+                    if (newCustomerName.isNotBlank()) {
+                        val newCustomer = Customer(newCustomerName.trim(), newCustomerAddress.trim(), newCustomerBtw.trim())
+                        onChange(state.copy(customers = state.customers + newCustomer))
+                        newCustomerName = ""; newCustomerAddress = ""; newCustomerBtw = ""
+                    }
+                }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) { Text("Firmayı Kaydet") }
+            }
+        }
+
         // ÇALIŞANLAR KARTI
-        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(defaultElevation = 3.dp), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
+        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp), shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
             Column(Modifier.padding(16.dp)) {
                 Title("Çalışanlar ve Saatlik Ücret")
                 state.workers.forEachIndexed { i, w ->
-                    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(w.name, Modifier.weight(1f), fontWeight = FontWeight.Medium)
-                        OutlinedTextField(value = fmt(w.rate), onValueChange = { v -> v.replace(',', '.').toDoubleOrNull()?.let { onChange(state.copy(workers = state.workers.toMutableList().also { l -> l[i] = w.copy(rate = it) })) } }, modifier = Modifier.width(100.dp), singleLine = true, shape = RoundedCornerShape(8.dp))
+                        OutlinedTextField(value = fmt(w.rate), onValueChange = { v -> v.replace(',', '.').toDoubleOrNull()?.let { onChange(state.copy(workers = state.workers.toMutableList().also { l -> l[i] = w.copy(rate = it) })) } }, modifier = Modifier.width(90.dp), singleLine = true, shape = RoundedCornerShape(8.dp))
                         if (state.workers.size > 1) TextButton(onClick = { onChange(state.copy(workers = state.workers.toMutableList().also { l -> l.removeAt(i) })) }) { Text("Sil", color = MaterialTheme.colorScheme.error) }
                     }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(value = newWorker, onValueChange = { newWorker = it }, label = { Text("Yeni çalışan") }, singleLine = true, modifier = Modifier.weight(1f), shape = RoundedCornerShape(10.dp))
+                    OutlinedTextField(value = newWorker, onValueChange = { newWorker = it }, label = { Text("Yeni çalışan") }, singleLine = true, modifier = Modifier.weight(1f), shape = RoundedCornerShape(8.dp))
                     Spacer(Modifier.width(8.dp))
-                    Button(onClick = { if (newWorker.isNotBlank()) { onChange(state.copy(workers = state.workers + Worker(newWorker.trim(), 20.0))); newWorker = "" } }, shape = RoundedCornerShape(10.dp)) { Text("Ekle") }
-                }
-            }
-        }
-
-        // GİDER KATEGORİLERİ KARTI
-        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(defaultElevation = 3.dp), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
-            Column(Modifier.padding(16.dp)) {
-                Title("Gider Kategorileri")
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(value = newCat, onValueChange = { newCat = it }, label = { Text("Yeni kategori") }, singleLine = true, modifier = Modifier.weight(1f), shape = RoundedCornerShape(10.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Button(onClick = { if (newCat.isNotBlank() && newCat !in state.categories) { onChange(state.copy(categories = state.categories + newCat.trim())); newCat = "" } }, shape = RoundedCornerShape(10.dp)) { Text("Ekle") }
-                }
-                state.categories.forEachIndexed { i, c ->
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text("• $c", Modifier.weight(1f))
-                        if (state.categories.size > 1) TextButton(onClick = { onChange(state.copy(categories = state.categories.toMutableList().also { l -> l.removeAt(i) })) }) { Text("Sil", color = MaterialTheme.colorScheme.error) }
-                    }
+                    Button(onClick = { if (newWorker.isNotBlank()) { onChange(state.copy(workers = state.workers + Worker(newWorker.trim(), 20.0))); newWorker = "" } }, shape = RoundedCornerShape(8.dp)) { Text("Ekle") }
                 }
             }
         }
