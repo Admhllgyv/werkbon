@@ -12,6 +12,7 @@ import android.provider.MediaStore
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -24,6 +25,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -37,9 +39,6 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoField
 import java.time.temporal.IsoFields
-
-// ... WorkEntry, WeekNav, WeekStore ve yardımcı fonksiyonlar aynı kalacak ...
-// (Kodun uzun olmaması için sadece arayüz kısımlarını değiştirdim, üstteki veri modellerini aynen koruyabilirsin)
 
 data class WorkEntry(
     val day: Int, val project: String, val worker: String, val start: Int, val pause: Int, val end: Int
@@ -99,7 +98,7 @@ fun TimeButton(label: String, minutes: Int, onPicked: (Int) -> Unit, modifier: M
 fun EntryCard(e: WorkEntry, projects: List<String>, workers: List<String>, onChange: (WorkEntry) -> Unit, onDelete: () -> Unit) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, androidx.compose.ui.graphics.Color.LightGray),
+        border = BorderStroke(1.dp, Color.LightGray),
         shape = RoundedCornerShape(8.dp),
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
     ) {
@@ -137,10 +136,9 @@ fun WerkbonScreen(state: AppState) {
     fun shift(delta: Long) { val m = mondayOf(year, week).plusWeeks(delta); year = m.get(IsoFields.WEEK_BASED_YEAR); week = m.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR); WeekNav.year = year; WeekNav.week = week }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp)) {
-        // Hafta Seçici (Minimalist)
         Card(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            border = androidx.compose.foundation.BorderStroke(1.dp, androidx.compose.ui.graphics.Color.LightGray),
+            border = BorderStroke(1.dp, Color.LightGray),
             shape = RoundedCornerShape(8.dp),
             modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
         ) {
@@ -157,7 +155,6 @@ fun WerkbonScreen(state: AppState) {
         val total = r2(entries.map { it.hours() }.sum())
         Text("Hafta toplamı: ${fmt(total)} saat", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 8.dp))
 
-        // GÜNLER (Şık Accordion)
         for (d in 0..4) {
             val dayEntries = entries.withIndex().filter { it.value.day == d }
             val date = mondayOf(year, week).plusDays(d.toLong())
@@ -168,12 +165,11 @@ fun WerkbonScreen(state: AppState) {
 
             Card(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = androidx.compose.foundation.BorderStroke(1.dp, if(isExpanded) MaterialTheme.colorScheme.primary else androidx.compose.ui.graphics.Color.LightGray),
+                border = BorderStroke(1.dp, if(isExpanded) MaterialTheme.colorScheme.primary else Color.LightGray),
                 shape = RoundedCornerShape(8.dp),
                 modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
             ) {
                 Column {
-                    // Gün Başlığı (İnce, az yer kaplayan)
                     Row(Modifier.fillMaxWidth().clickable { isExpanded = !isExpanded }.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text("${dayTr[d]} (${dayNl[d]})", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
@@ -185,10 +181,9 @@ fun WerkbonScreen(state: AppState) {
                         Icon(Icons.Default.KeyboardArrowDown, "Aç", modifier = Modifier.size(20.dp).rotate(rotationState))
                     }
 
-                    // İçerik
                     AnimatedVisibility(visible = isExpanded) {
                         Column(Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp)) {
-                            Divider(color = androidx.compose.ui.graphics.Color.LightGray.copy(alpha=0.5f))
+                            Divider(color = Color.LightGray.copy(alpha=0.5f))
                             Spacer(Modifier.height(8.dp))
                             
                             if (dayEntries.isEmpty()) {
@@ -222,7 +217,6 @@ fun WerkbonScreen(state: AppState) {
             }
         }
 
-        // PDF İŞLEMLERİ
         Spacer(Modifier.height(16.dp))
         Text("Werkbon PDF", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MaterialTheme.colorScheme.primary)
 
@@ -247,4 +241,73 @@ fun WerkbonScreen(state: AppState) {
         Spacer(Modifier.height(24.dp))
     }
 }
-// ... Aşağıdaki showPdfOptions, viewPdf, savePdfToDownloads, sharePdf fonksiyonları aynen kalacak ...
+
+// EKSİK OLAN PDF İŞLEM FONKSİYONLARI BURAYA EKLENDİ
+fun showPdfOptions(ctx: Context, file: File) {
+    val options = arrayOf("👁️ Görüntüle", "📥 İndir (Kaydet)", "📤 Paylaş")
+    AlertDialog.Builder(ctx)
+        .setTitle("PDF İşlemleri")
+        .setItems(options) { _, which ->
+            when (which) {
+                0 -> viewPdf(ctx, file)
+                1 -> savePdfToDownloads(ctx, file)
+                2 -> sharePdf(ctx, file)
+            }
+        }
+        .show()
+}
+
+fun viewPdf(ctx: Context, file: File) {
+    try {
+        val uri = FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", file)
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, "application/pdf")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY)
+        }
+        ctx.startActivity(intent)
+    } catch (e: Exception) {
+        Toast.makeText(ctx, "PDF açıcı bulunamadı.", Toast.LENGTH_SHORT).show()
+    }
+}
+
+fun savePdfToDownloads(ctx: Context, file: File) {
+    try {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val resolver = ctx.contentResolver
+            val contentValues = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, file.name)
+                put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
+                put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+            }
+            val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+            if (uri != null) {
+                resolver.openOutputStream(uri)?.use { out ->
+                    file.inputStream().use { input -> input.copyTo(out) }
+                }
+                Toast.makeText(ctx, "PDF İndirilenler klasörüne kaydedildi.", Toast.LENGTH_LONG).show()
+            }
+        } else {
+            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            val destFile = File(downloadsDir, file.name)
+            file.copyTo(destFile, overwrite = true)
+            Toast.makeText(ctx, "PDF İndirilenler klasörüne kaydedildi.", Toast.LENGTH_LONG).show()
+        }
+    } catch (e: Exception) {
+        Toast.makeText(ctx, "Kaydetme hatası: ${e.message}", Toast.LENGTH_LONG).show()
+    }
+}
+
+fun sharePdf(ctx: Context, file: File) {
+    try {
+        val uri = FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", file)
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "application/pdf"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        ctx.startActivity(Intent.createChooser(intent, "PDF Paylaş"))
+    } catch (e: Exception) {
+        Toast.makeText(ctx, "Hata: ${e.message}", Toast.LENGTH_LONG).show()
+    }
+}
