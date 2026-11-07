@@ -38,12 +38,14 @@ fun ProjectsScreen(state: AppState, onChange: (AppState) -> Unit) {
                 Field("Proje kodu (örn. E260003)", newCode) { newCode = it }
                 Spacer(Modifier.height(8.dp))
                 Button(
-                    onClick = {
-                        if (newName.isNotBlank()) {
-                            val code = newCode.trim().ifEmpty { "E260000" }
-                            onChange(state.copy(projects = state.projects + Project(code, newName.trim())))
-                            newName = ""
-                            newCode = ""
+    onClick = {
+        if (newName.isNotBlank()) { // <-- SADECE PROJE ADI YETERLİ
+            val code = newCode.trim().ifEmpty { "E260000" }
+            // Müşteri seçilmediyse boş string olarak kaydeder
+            onChange(state.copy(projects = state.projects + Project(code, newName.trim(), selectedCustomer)))
+            newName = ""; newCode = ""; selectedCustomer = ""
+        }
+    },
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
