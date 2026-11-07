@@ -116,7 +116,6 @@ fun Title(text: String) {
     Text(text, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(vertical = 8.dp))
 }
 
-// ŞIK VE KOMPAKT INPUT ALANI
 @Composable
 fun Field(label: String, value: String, onValue: (String) -> Unit) {
     OutlinedTextField(
@@ -134,7 +133,6 @@ fun Field(label: String, value: String, onValue: (String) -> Unit) {
     )
 }
 
-// GÖLGESİZ, İNCE ÇİZGİLİ KART (Premium Görünüm)
 @Composable
 fun PremiumCard(content: @Composable ColumnScope.() -> Unit) {
     Card(
@@ -153,7 +151,6 @@ fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit) {
     val ctx = LocalContext.current
     var newWorker by remember { mutableStateOf("") }
     var newCat by remember { mutableStateOf("") }
-    
     var newCustomerName by remember { mutableStateOf("") }
     var newCustomerAddress by remember { mutableStateOf("") }
     var newCustomerBtw by remember { mutableStateOf("") }
@@ -189,8 +186,6 @@ fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit) {
     }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp)) {
-        
-        // TEMA RENKLERİ (Küçültüldü)
         PremiumCard {
             Title("🎨 Uygulama Tema Rengi")
             Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -212,7 +207,6 @@ fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit) {
             }
         }
 
-        // YEDEKLEME (Butonlar küçültüldü)
         PremiumCard {
             Title("💾 Veri Yedekleme")
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -243,7 +237,6 @@ fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit) {
             }
         }
 
-        // FİRMA BİLGİLERİ
         PremiumCard {
             Title("Firma Bilgileriniz")
             OutlinedButton(
@@ -262,7 +255,6 @@ fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit) {
             Field("BTW", state.compBtw) { onChange(state.copy(compBtw = it)) }
         }
 
-        // MÜŞTERİLER (Silme butonları küçültüldü)
         PremiumCard {
             Title("Firmalar / Müşteriler")
             state.customers.forEachIndexed { i, c ->
@@ -296,15 +288,19 @@ fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit) {
             ) { Text("Firmayı Kaydet", fontSize = 12.sp) }
         }
 
-        // ÇALIŞANLAR
         PremiumCard {
             Title("Çalışanlar")
             state.workers.forEachIndexed { i, w ->
                 Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(w.name, Modifier.weight(1f), fontWeight = FontWeight.Medium, fontSize = 13.sp)
+                    // HATA ÇÖZÜMÜ BURADA (newRate -> it)
                     OutlinedTextField(
                         value = fmt(w.rate), 
-                        onValueChange = { v -> v.replace(',', '.').toDoubleOrNull()?.let { onChange(state.copy(workers = state.workers.toMutableList().also { l -> l[i] = w.copy(rate = it) })) } }, 
+                        onValueChange = { v -> 
+                            v.replace(',', '.').toDoubleOrNull()?.let { newRate -> 
+                                onChange(state.copy(workers = state.workers.toMutableList().also { l -> l[i] = w.copy(rate = newRate) })) 
+                            } 
+                        }, 
                         modifier = Modifier.width(80.dp).height(50.dp), 
                         singleLine = true, 
                         shape = RoundedCornerShape(8.dp),
