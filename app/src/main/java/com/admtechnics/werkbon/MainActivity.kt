@@ -108,7 +108,7 @@ fun TopHeaderCard(title: String) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
         shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth().height(56.dp).padding(bottom = 12.dp)
+        modifier = Modifier.fillMaxWidth().height(52.dp).padding(bottom = 12.dp)
     ) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(title, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
@@ -121,7 +121,7 @@ fun Title(text: String) {
     Text(text, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(vertical = 8.dp))
 }
 
-// STANDART KUTU YÜKSEKLİĞİ (56.dp)
+// FIX: TÜM YAZI KUTULARI (INPUT) KÜÇÜLTÜLDÜ VE FONTU DÜZELTİLDİ
 @Composable
 fun Field(label: String, value: String, onValue: (String) -> Unit) {
     OutlinedTextField(
@@ -129,9 +129,9 @@ fun Field(label: String, value: String, onValue: (String) -> Unit) {
         onValueChange = onValue, 
         label = { Text(label, fontSize = 11.sp) },
         singleLine = true, 
-        textStyle = MaterialTheme.typography.bodyLarge,
+        textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 14.sp), // Yazı boyutu küçültüldü
         shape = RoundedCornerShape(8.dp),
-        modifier = Modifier.fillMaxWidth().height(56.dp).padding(bottom = 4.dp),
+        modifier = Modifier.fillMaxWidth().height(52.dp).padding(bottom = 4.dp), // Kutu yüksekliği 52.dp yapıldı
         colors = OutlinedTextFieldDefaults.colors(
             unfocusedBorderColor = Color.LightGray,
             focusedBorderColor = MaterialTheme.colorScheme.primary
@@ -248,13 +248,21 @@ fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit, title: String)
             state.workers.forEachIndexed { i, w ->
                 Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(w.name, Modifier.weight(1f), fontWeight = FontWeight.Medium, fontSize = 14.sp)
-                    OutlinedTextField(value = fmt(w.rate), onValueChange = { v -> v.replace(',', '.').toDoubleOrNull()?.let { nr -> onChange(state.copy(workers = state.workers.toMutableList().also { l -> l[i] = w.copy(rate = nr) })) } }, modifier = Modifier.width(90.dp).height(50.dp), singleLine = true, shape = RoundedCornerShape(8.dp), textStyle = MaterialTheme.typography.bodyMedium, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
+                    // FIX: Çalışan ücret kutusu boyutu standarda çekildi
+                    OutlinedTextField(
+                        value = fmt(w.rate), 
+                        onValueChange = { v -> v.replace(',', '.').toDoubleOrNull()?.let { nr -> onChange(state.copy(workers = state.workers.toMutableList().also { l -> l[i] = w.copy(rate = nr) })) } }, 
+                        modifier = Modifier.width(90.dp).height(52.dp), 
+                        singleLine = true, shape = RoundedCornerShape(8.dp), 
+                        textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp), 
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                    )
                     if (state.workers.size > 1) { TextButton(onClick = { onChange(state.copy(workers = state.workers.toMutableList().also { l -> l.removeAt(i) })) }, modifier = Modifier.height(30.dp)) { Text("Sil", color = MaterialTheme.colorScheme.error, fontSize = 11.sp) } }
                 }
             }
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                OutlinedTextField(value = newWorker, onValueChange = { newWorker = it }, label = { Text("Yeni çalışan", fontSize=11.sp) }, singleLine = true, modifier = Modifier.weight(1f).height(56.dp), shape = RoundedCornerShape(8.dp))
+                OutlinedTextField(value = newWorker, onValueChange = { newWorker = it }, label = { Text("Yeni çalışan", fontSize=11.sp) }, singleLine = true, modifier = Modifier.weight(1f).height(52.dp), shape = RoundedCornerShape(8.dp), textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 14.sp))
                 Spacer(Modifier.width(8.dp))
                 Button(onClick = { if (newWorker.isNotBlank()) { onChange(state.copy(workers = state.workers + Worker(newWorker.trim(), 20.0))); newWorker = "" } }, shape = RoundedCornerShape(8.dp), modifier = Modifier.height(40.dp)) { Text("Ekle", fontSize = 12.sp) }
             }
@@ -263,7 +271,7 @@ fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit, title: String)
         PremiumCard {
             Title("Gider / Malzeme Kategorileri")
             Row(verticalAlignment = Alignment.CenterVertically) {
-                OutlinedTextField(value = newCat, onValueChange = { newCat = it }, label = { Text("Yeni kategori", fontSize = 11.sp) }, singleLine = true, modifier = Modifier.weight(1f).height(56.dp), shape = RoundedCornerShape(8.dp))
+                OutlinedTextField(value = newCat, onValueChange = { newCat = it }, label = { Text("Yeni kategori", fontSize = 11.sp) }, singleLine = true, modifier = Modifier.weight(1f).height(52.dp), shape = RoundedCornerShape(8.dp), textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 14.sp))
                 Spacer(Modifier.width(8.dp))
                 Button(onClick = { if (newCat.isNotBlank() && !state.categories.contains(newCat.trim())) { onChange(state.copy(categories = state.categories + newCat.trim())); newCat = "" } }, shape = RoundedCornerShape(8.dp), modifier = Modifier.height(40.dp)) { Text("Ekle", fontSize = 12.sp) }
             }
