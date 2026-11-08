@@ -109,7 +109,6 @@ fun ExpenseCard(e: Expense, projects: List<String>, cats: List<String>, onChange
             Picker("Gider", e.category, cats, { v -> onChange(e.copy(category = v)) }, Modifier.fillMaxWidth())
             Spacer(Modifier.height(6.dp))
             
-            // Tutar Kutusu (Standart yükseklik)
             OutlinedTextField(
                 value = txt, onValueChange = { v -> txt = v; onChange(e.copy(amount = v.replace(',', '.').toDoubleOrNull() ?: 0.0)) },
                 label = { Text("Tutar (€)", fontSize = 11.sp) }, singleLine = true, textStyle = MaterialTheme.typography.bodyLarge, shape = RoundedCornerShape(8.dp),
@@ -118,7 +117,6 @@ fun ExpenseCard(e: Expense, projects: List<String>, cats: List<String>, onChange
             
             Spacer(Modifier.height(8.dp))
             
-            // Çek, Galeri, Dosyalar Butonları Yan Yana
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 OutlinedButton(onClick = onCamera, shape = RoundedCornerShape(8.dp), modifier = Modifier.weight(1f).height(36.dp), contentPadding = PaddingValues(0.dp), border = BorderStroke(1.dp, Color.LightGray)) { Text("📷 Çek", fontSize = 10.sp, color = Color.Black) }
                 OutlinedButton(onClick = onGallery, shape = RoundedCornerShape(8.dp), modifier = Modifier.weight(1f).height(36.dp), contentPadding = PaddingValues(0.dp), border = BorderStroke(1.dp, Color.LightGray)) { Text("🖼 Galeri", fontSize = 10.sp, color = Color.Black) }
@@ -127,13 +125,8 @@ fun ExpenseCard(e: Expense, projects: List<String>, cats: List<String>, onChange
             
             Spacer(Modifier.height(6.dp))
             
-            // Alt Kısım: Fiş Görseli ve Sil Butonu
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                if (e.image.isNotEmpty()) { 
-                    Box(Modifier.weight(1f)) { Thumb(File(receiptsDir(ctx), e.image)) } 
-                } else { 
-                    Spacer(Modifier.weight(1f)) 
-                }
+                if (e.image.isNotEmpty()) { Box(Modifier.weight(1f)) { Thumb(File(receiptsDir(ctx), e.image)) } } else { Spacer(Modifier.weight(1f)) }
                 TextButton(onClick = onDelete, modifier = Modifier.height(30.dp), contentPadding = PaddingValues(0.dp)) { Text("Fişi sil", color = MaterialTheme.colorScheme.error, fontSize = 11.sp) }
             }
         }
@@ -179,7 +172,7 @@ fun ExpensesSection(state: AppState, key: String, day: Int) {
                 onChange = { ne -> update(items.toMutableList().also { l -> l[idx] = ne }) }, 
                 onCamera = { takePhoto(idx) }, 
                 onGallery = { pendingIdx = idx; gallery.launch("image/*") }, 
-                onFiles = { pendingIdx = idx; files.launch("*/*") }, // Dosyalar butonu için
+                onFiles = { pendingIdx = idx; files.launch("*/*") },
                 onDelete = { if (e.image.isNotEmpty()) File(receiptsDir(ctx), e.image).delete(); update(items.toMutableList().also { l -> l.removeAt(idx) }) })
         }
         
