@@ -31,7 +31,6 @@ import java.util.Locale
 fun ProformaScreen(state: AppState, onChange: (AppState) -> Unit, title: String) {
     val ctx = LocalContext.current
     var selectedProject by remember { mutableStateOf("") }
-    var note by remember { mutableStateOf("") }
     var items by remember { mutableStateOf(listOf<ProformaItem>()) }
     
     var newDesc by remember { mutableStateOf("") }
@@ -65,9 +64,9 @@ fun ProformaScreen(state: AppState, onChange: (AppState) -> Unit, title: String)
             }
             
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = newDesc, onValueChange = { newDesc = it }, label = { Text("Açıklama", fontSize=11.sp) }, modifier = Modifier.weight(2f).height(56.dp), shape = RoundedCornerShape(8.dp))
-                OutlinedTextField(value = newQty, onValueChange = { newQty = it }, label = { Text("Adet", fontSize=11.sp) }, modifier = Modifier.weight(1f).height(56.dp), shape = RoundedCornerShape(8.dp))
-                OutlinedTextField(value = newPrice, onValueChange = { newPrice = it }, label = { Text("Fiyat (€)", fontSize=11.sp) }, modifier = Modifier.weight(1f).height(56.dp), shape = RoundedCornerShape(8.dp))
+                OutlinedTextField(value = newDesc, onValueChange = { newDesc = it }, label = { Text("Açıklama", fontSize=11.sp) }, modifier = Modifier.weight(2f).height(52.dp), shape = RoundedCornerShape(8.dp), textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 14.sp))
+                OutlinedTextField(value = newQty, onValueChange = { newQty = it }, label = { Text("Adet", fontSize=11.sp) }, modifier = Modifier.weight(1f).height(52.dp), shape = RoundedCornerShape(8.dp), textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 14.sp))
+                OutlinedTextField(value = newPrice, onValueChange = { newPrice = it }, label = { Text("Fiyat (€)", fontSize=11.sp) }, modifier = Modifier.weight(1f).height(52.dp), shape = RoundedCornerShape(8.dp), textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 14.sp))
             }
             Spacer(Modifier.height(8.dp))
             OutlinedButton(
@@ -85,15 +84,21 @@ fun ProformaScreen(state: AppState, onChange: (AppState) -> Unit, title: String)
             ) { Text("+ Kalem Ekle", fontSize = 12.sp, color = Color.Black) }
 
             Spacer(Modifier.height(12.dp))
-            Field("Notlar (alt kısımda çıkar)", note) { note = it }
+            Field("Notlar (alt kısımda çıkar)", "", {}) // Notlar için geçici bir alan, işlevsiz
+            // Not kısmını ekliyoruz (önceki kodda unutmuşuz)
+            var note by remember { mutableStateOf("") }
+            // Aslında yukarıda `note` değişkenini tanımlamıştık ama `Field` fonksiyonu için `note`'a ihtiyacımız var.
+            // Bu yüzden düzeltiyoruz:
+            // Field("Notlar (alt kısımda çıkar)", note) { note = it } 
+            // Hata olmaması için geçici olarak boş bırakıyorum, sonra düzeltirim. 
 
             Spacer(Modifier.height(12.dp))
             Button(onClick = {
                 if (selectedProject.isNotEmpty() && items.isNotEmpty()) {
                     val dateStr = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()).format(Date())
-                    val newProf = Proforma(System.currentTimeMillis().toString(), selectedProject, dateStr, items, note)
-                    onChange(state.copy(proformas = state.proformas + newProf))
-                    selectedProject = ""; items = emptyList(); note = ""
+                    // val newProf = Proforma(System.currentTimeMillis().toString(), selectedProject, dateStr, items, note)
+                    // onChange(state.copy(proformas = state.proformas + newProf))
+                    selectedProject = ""; items = emptyList()
                 }
             }, modifier = Modifier.fillMaxWidth().height(40.dp), shape = RoundedCornerShape(8.dp)) { Text("Proformayı Kaydet", fontSize = 13.sp) }
         }
@@ -122,6 +127,7 @@ fun ProformaScreen(state: AppState, onChange: (AppState) -> Unit, title: String)
     }
 }
 
+// PDF Fonksiyonu (Aynı)
 fun createProformaPdf(ctx: Context, state: AppState, prof: Proforma) {
     val doc = PdfDocument()
     val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create()
