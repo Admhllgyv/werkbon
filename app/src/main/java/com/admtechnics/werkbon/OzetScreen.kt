@@ -46,7 +46,7 @@ fun OzetScreen(state: AppState, title: String) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp)) {
         TopHeaderCard(title)
         
-        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = BorderStroke(1.dp, Color(0xFFE2E8F0)), shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth().height(56.dp).padding(bottom = 16.dp)) {
+        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = BorderStroke(1.dp, Color(0xFFE2E8F0)), shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth().height(52.dp).padding(bottom = 16.dp)) {
             Row(Modifier.fillMaxSize().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 TextButton(onClick = { shift(-1L) }, contentPadding = PaddingValues(0.dp), modifier = Modifier.width(60.dp)) { Text("◀", fontSize = 14.sp) }
                 Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
