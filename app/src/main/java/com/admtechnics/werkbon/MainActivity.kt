@@ -121,7 +121,7 @@ fun Title(text: String) {
     Text(text, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(vertical = 8.dp))
 }
 
-// STANDART KUTU YÜKSEKLİĞİ (50.dp)
+// STANDART KUTU YÜKSEKLİĞİ (56.dp)
 @Composable
 fun Field(label: String, value: String, onValue: (String) -> Unit) {
     OutlinedTextField(
@@ -220,7 +220,6 @@ fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit, title: String)
             Title("Firma Bilgileriniz")
             OutlinedButton(onClick = { logoPicker.launch("image/*") }, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth().height(40.dp)) { Text(if (state.compLogoPath.isEmpty()) "🖼️ Logo Ekle" else "🖼️ Logoyu Değiştir", fontSize = 12.sp) }
             Spacer(Modifier.height(8.dp))
-            // Field fonksiyonu artık hepsini 56.dp yapacak
             Field("Firma Adı", state.compName) { onChange(state.copy(compName = it)) }
             Field("Adres", state.compAddress) { onChange(state.copy(compAddress = it)) }
             Field("E-posta", state.compEmail) { onChange(state.copy(compEmail = it)) }
