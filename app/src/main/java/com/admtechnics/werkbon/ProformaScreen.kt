@@ -112,7 +112,7 @@ fun ProformaScreen(state: AppState, onChange: (AppState) -> Unit, title: String)
     }
 }
 
-// EKSİK OLAN PDF OLUŞTURMA FONKSİYONU BURAYA EKLENDİ
+// PDF Fonksiyonu aynen kalacak
 fun createProformaPdf(ctx: Context, state: AppState, prof: Proforma) {
     val doc = PdfDocument()
     val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create()
