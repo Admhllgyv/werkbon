@@ -77,7 +77,7 @@ fun ProformaScreen(state: AppState, onChange: (AppState) -> Unit, title: String)
                     items = items + ProformaItem(newDesc, q, p)
                     newDesc = ""; newQty = "1"; newPrice = ""
                 }
-            }, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth().height(36.dp), border = BorderStroke(1.dp, Color.LightGray)) { Text("+ Kalem Ekle", fontSize = 12.sp, color = Color.Black) }
+            }, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth().height(36.dp), border = BorderStroke(1.dp, androidx.compose.ui.graphics.Color.LightGray)) { Text("+ Kalem Ekle", fontSize = 12.sp, color = androidx.compose.ui.graphics.Color.Black) }
 
             Spacer(Modifier.height(12.dp))
             Field("Notlar (alt kısımda çıkar)", note) { note = it }
@@ -97,14 +97,14 @@ fun ProformaScreen(state: AppState, onChange: (AppState) -> Unit, title: String)
         state.proformas.reversed().forEach { prof ->
             Card(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                border = BorderStroke(1.dp, androidx.compose.ui.graphics.Color(0xFFE2E8F0)),
                 shape = RoundedCornerShape(8.dp),
                 modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
             ) {
                 Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(prof.projectName, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        Text("Tarih: ${prof.date}", fontSize = 11.sp, color = Color.Gray)
+                        Text("Tarih: ${prof.date}", fontSize = 11.sp, color = androidx.compose.ui.graphics.Color.Gray)
                         val total = prof.items.sumOf { it.quantity * it.price }
                         Text("Toplam: €%.2f".format(total), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, fontSize = 13.sp)
                     }
@@ -117,7 +117,7 @@ fun ProformaScreen(state: AppState, onChange: (AppState) -> Unit, title: String)
     }
 }
 
-// createProformaPdf fonksiyonu aynen kalacak...
+// createProformaPdf fonksiyonu aynen kalacak (değişmedi)
 fun createProformaPdf(ctx: Context, state: AppState, prof: Proforma) {
     val doc = PdfDocument()
     val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create()
