@@ -3,7 +3,6 @@ package com.admtechnics.werkbon
 import android.content.Context
 import android.content.Intent
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
@@ -16,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -70,14 +70,19 @@ fun ProformaScreen(state: AppState, onChange: (AppState) -> Unit, title: String)
                 OutlinedTextField(value = newPrice, onValueChange = { newPrice = it }, label = { Text("Fiyat (€)", fontSize=11.sp) }, modifier = Modifier.weight(1f).height(56.dp), shape = RoundedCornerShape(8.dp))
             }
             Spacer(Modifier.height(8.dp))
-            OutlinedButton(onClick = {
-                if (newDesc.isNotBlank() && newPrice.isNotBlank()) {
-                    val q = newQty.replace(',', '.').toDoubleOrNull() ?: 1.0
-                    val p = newPrice.replace(',', '.').toDoubleOrNull() ?: 0.0
-                    items = items + ProformaItem(newDesc, q, p)
-                    newDesc = ""; newQty = "1"; newPrice = ""
-                }
-            }, shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth().height(36.dp), border = BorderStroke(1.dp, Color.LightGray)) { Text("+ Kalem Ekle", fontSize = 12.sp, color = Color.Black) }
+            OutlinedButton(
+                onClick = {
+                    if (newDesc.isNotBlank() && newPrice.isNotBlank()) {
+                        val q = newQty.replace(',', '.').toDoubleOrNull() ?: 1.0
+                        val p = newPrice.replace(',', '.').toDoubleOrNull() ?: 0.0
+                        items = items + ProformaItem(newDesc, q, p)
+                        newDesc = ""; newQty = "1"; newPrice = ""
+                    }
+                }, 
+                shape = RoundedCornerShape(8.dp), 
+                modifier = Modifier.fillMaxWidth().height(36.dp), 
+                border = BorderStroke(1.dp, Color.LightGray)
+            ) { Text("+ Kalem Ekle", fontSize = 12.sp, color = Color.Black) }
 
             Spacer(Modifier.height(12.dp))
             Field("Notlar (alt kısımda çıkar)", note) { note = it }
@@ -95,7 +100,12 @@ fun ProformaScreen(state: AppState, onChange: (AppState) -> Unit, title: String)
 
         Title("Geçmiş Proformalar")
         state.proformas.reversed().forEach { prof ->
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = BorderStroke(1.dp, Color(0xFFE2E8F0)), shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), 
+                border = BorderStroke(1.dp, Color(0xFFE2E8F0)), 
+                shape = RoundedCornerShape(8.dp), 
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+            ) {
                 Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(prof.projectName, fontWeight = FontWeight.Bold, fontSize = 14.sp)
@@ -112,16 +122,15 @@ fun ProformaScreen(state: AppState, onChange: (AppState) -> Unit, title: String)
     }
 }
 
-// PDF Fonksiyonu aynen kalacak
 fun createProformaPdf(ctx: Context, state: AppState, prof: Proforma) {
     val doc = PdfDocument()
     val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create()
     val page = doc.startPage(pageInfo)
     val canvas = page.canvas
 
-    val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.BLACK; textSize = 10f }
-    val boldPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.BLACK; textSize = 10f; typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD) }
-    val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.LTGRAY; strokeWidth = 1f }
+    val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.BLACK; textSize = 10f }
+    val boldPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.BLACK; textSize = 10f; typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD) }
+    val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.LTGRAY; strokeWidth = 1f }
     
     var y = 50f
     val leftMargin = 50f
