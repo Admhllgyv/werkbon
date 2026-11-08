@@ -7,6 +7,7 @@ import android.graphics.Matrix
 import android.media.ExifInterface
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -34,6 +35,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -203,8 +205,8 @@ fun ExpenseCard(
     var txt by remember(e.id) { mutableStateOf(if (e.amount == 0.0) "" else fmt(e.amount)) }
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        shape = RoundedCornerShape(10.dp),
+        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+        shape = RoundedCornerShape(8.dp),
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
     ) {
         Column(Modifier.padding(10.dp)) {
@@ -218,24 +220,26 @@ fun ExpenseCard(
                     txt = v
                     onChange(e.copy(amount = v.replace(',', '.').toDoubleOrNull() ?: 0.0))
                 },
-                label = { Text("Tutar (€)") },
+                label = { Text("Tutar (€)", fontSize = 11.sp) },
                 singleLine = true,
+                textStyle = MaterialTheme.typography.bodyLarge,
                 shape = RoundedCornerShape(8.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(unfocusedBorderColor = Color.LightGray)
             )
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(8.dp))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedButton(onClick = onCamera, shape = RoundedCornerShape(8.dp)) { Text("📷 Çek") }
-                OutlinedButton(onClick = onGallery, shape = RoundedCornerShape(8.dp)) { Text("🖼 Galeri") }
+                OutlinedButton(onClick = onCamera, shape = RoundedCornerShape(8.dp), modifier = Modifier.height(36.dp), border = BorderStroke(1.dp, Color.LightGray)) { Text("📷 Çek", fontSize = 11.sp, color = Color.Black) }
+                OutlinedButton(onClick = onGallery, shape = RoundedCornerShape(8.dp), modifier = Modifier.height(36.dp), border = BorderStroke(1.dp, Color.LightGray)) { Text("🖼 Galeri", fontSize = 11.sp, color = Color.Black) }
                 if (e.image.isNotEmpty()) {
                     Thumb(File(receiptsDir(ctx), e.image))
                 }
             }
-            TextButton(onClick = onDelete) { Text("Fişi sil", color = MaterialTheme.colorScheme.error) }
+            TextButton(onClick = onDelete, modifier = Modifier.height(30.dp), contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) { Text("Fişi sil", color = MaterialTheme.colorScheme.error, fontSize = 11.sp) }
         }
     }
 }
@@ -312,7 +316,7 @@ fun ExpensesSection(state: AppState, key: String, day: Int) {
 
     Column(Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp)) {
         if (items.isNotEmpty()) {
-            Text("Bu günün fiş toplamı: €$totalTxt", fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+            Text("Bu günün fiş toplamı: €$totalTxt", fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
         }
         items.forEachIndexed { idx, e ->
             ExpenseCard(
@@ -348,8 +352,8 @@ fun ExpensesSection(state: AppState, key: String, day: Int) {
                     )
                 },
                 shape = RoundedCornerShape(8.dp),
-                modifier = Modifier.padding(top = 4.dp)
-            ) { Text("+ Fiş ekle", fontSize = 12.sp) }
+                modifier = Modifier.padding(top = 4.dp).height(36.dp)
+            ) { Text("+ Fiş ekle", fontSize = 11.sp) }
         }
     }
 }
