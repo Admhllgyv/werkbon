@@ -3,6 +3,7 @@ package com.admtechnics.werkbon
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border // <-- EKLENDİ
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,7 +13,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -46,7 +46,6 @@ fun OzetScreen(state: AppState, title: String) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp)) {
         TopHeaderCard(title)
         
-        // Hafta Seçici Bar
         Card(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
@@ -68,24 +67,21 @@ fun OzetScreen(state: AppState, title: String) {
             return@Column
         }
 
-        // YENİ: ÇALIŞMA KAYITLARI TABLOSU (Genişletilmiş)
         if (entries.isNotEmpty()) {
             Text("📋 Tüm Çalışma Kayıtları", fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.padding(vertical = 8.dp))
             
             Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp)).border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(8.dp))) {
-                // Başlık
                 Row(Modifier.background(MaterialTheme.colorScheme.primary, RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)).padding(vertical = 8.dp)) {
                     TableHeader("Tarih & Gün", 120.dp)
                     TableHeader("Proje", 140.dp)
                     TableHeader("Çalışan", 80.dp)
                     TableHeader("Saat", 60.dp)
                 }
-                // Satırlar
                 entries.sortedBy { it.day }.forEachIndexed { index, e ->
                     val bgColor = if (index % 2 == 0) Color.Transparent else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                     Row(Modifier.background(bgColor).padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                         TableCell("${mon.plusDays(e.day.toLong()).format(dateFmt)} / ${dayTr[e.day]}", 120.dp)
-                        TableCell(e.project.substringAfter("- ").take(15), 140.dp) // Proje adı çok uzunsa kes
+                        TableCell(e.project.substringAfter("- ").take(15), 140.dp) 
                         TableCell(e.worker, 80.dp)
                         TableCell("${fmt(e.hours())}", 60.dp, FontWeight.Bold, MaterialTheme.colorScheme.primary)
                     }
@@ -95,7 +91,6 @@ fun OzetScreen(state: AppState, title: String) {
             Spacer(Modifier.height(24.dp))
         }
 
-        // YENİ: FİŞ VE GİDER DETAYLARI (Görselli)
         if (expenses.isNotEmpty()) {
             Text("💶 Fiş / Gider Detayları", fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.padding(vertical = 8.dp))
             
@@ -108,7 +103,6 @@ fun OzetScreen(state: AppState, title: String) {
                         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
                     ) {
                         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            // Fiş Görseli Varsa Küçük Gösterim
                             if (ex.image.isNotEmpty()) {
                                 val file = File(receiptsDir(ctx), ex.image)
                                 if (file.exists()) {
@@ -140,7 +134,6 @@ fun OzetScreen(state: AppState, title: String) {
             Spacer(Modifier.height(24.dp))
         }
 
-        // ÇALIŞAN BAZLI TABLO
         if (entries.isNotEmpty()) {
             Text("👷 Çalışan Bazlı Toplam Saatler", fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.padding(vertical = 8.dp))
             val workerHours = entries.groupBy { it.worker }.mapValues { r2(it.value.sumOf { e -> e.hours() }) }
@@ -161,7 +154,6 @@ fun OzetScreen(state: AppState, title: String) {
             Spacer(Modifier.height(24.dp))
         }
 
-        // PROJE BAZLI TABLO
         if (entries.isNotEmpty()) {
             Text("📁 Proje Bazlı Toplam Saatler", fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.padding(vertical = 8.dp))
             val projHours = entries.groupBy { it.project }.mapValues { r2(it.value.sumOf { e -> e.hours() }) }
