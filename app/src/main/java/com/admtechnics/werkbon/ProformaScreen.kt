@@ -65,9 +65,9 @@ fun ProformaScreen(state: AppState, onChange: (AppState) -> Unit, title: String)
             }
             
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = newDesc, onValueChange = { newDesc = it }, label = { Text("Açıklama", fontSize=11.sp) }, modifier = Modifier.weight(2f).height(50.dp), shape = RoundedCornerShape(8.dp))
-                OutlinedTextField(value = newQty, onValueChange = { newQty = it }, label = { Text("Adet", fontSize=11.sp) }, modifier = Modifier.weight(1f).height(50.dp), shape = RoundedCornerShape(8.dp))
-                OutlinedTextField(value = newPrice, onValueChange = { newPrice = it }, label = { Text("Fiyat (€)", fontSize=11.sp) }, modifier = Modifier.weight(1f).height(50.dp), shape = RoundedCornerShape(8.dp))
+                OutlinedTextField(value = newDesc, onValueChange = { newDesc = it }, label = { Text("Açıklama", fontSize=11.sp) }, modifier = Modifier.weight(2f).height(56.dp), shape = RoundedCornerShape(8.dp))
+                OutlinedTextField(value = newQty, onValueChange = { newQty = it }, label = { Text("Adet", fontSize=11.sp) }, modifier = Modifier.weight(1f).height(56.dp), shape = RoundedCornerShape(8.dp))
+                OutlinedTextField(value = newPrice, onValueChange = { newPrice = it }, label = { Text("Fiyat (€)", fontSize=11.sp) }, modifier = Modifier.weight(1f).height(56.dp), shape = RoundedCornerShape(8.dp))
             }
             Spacer(Modifier.height(8.dp))
             OutlinedButton(onClick = {
@@ -95,12 +95,7 @@ fun ProformaScreen(state: AppState, onChange: (AppState) -> Unit, title: String)
 
         Title("Geçmiş Proformalar")
         state.proformas.reversed().forEach { prof ->
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, androidx.compose.ui.graphics.Color(0xFFE2E8F0)),
-                shape = RoundedCornerShape(8.dp),
-                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
-            ) {
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = BorderStroke(1.dp, androidx.compose.ui.graphics.Color(0xFFE2E8F0)), shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                 Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(prof.projectName, fontWeight = FontWeight.Bold, fontSize = 14.sp)
@@ -115,78 +110,4 @@ fun ProformaScreen(state: AppState, onChange: (AppState) -> Unit, title: String)
             }
         }
     }
-}
-
-// createProformaPdf fonksiyonu aynen kalacak (değişmedi)
-fun createProformaPdf(ctx: Context, state: AppState, prof: Proforma) {
-    val doc = PdfDocument()
-    val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create()
-    val page = doc.startPage(pageInfo)
-    val canvas = page.canvas
-
-    val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.BLACK; textSize = 10f }
-    val boldPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.BLACK; textSize = 10f; typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD) }
-    val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.LTGRAY; strokeWidth = 1f }
-    
-    var y = 50f
-    val leftMargin = 50f
-    val rightMargin = 545f
-
-    val proj = state.projects.find { "${it.code} - ${it.name}" == prof.projectName }
-    val customer = state.customers.find { it.name == proj?.customerName }
-
-    if (customer != null) {
-        canvas.drawText(customer.name, leftMargin, y, boldPaint); y += 15f
-        canvas.drawText(customer.address, leftMargin, y, textPaint); y += 15f
-        canvas.drawText("BTW: ${customer.btw}", leftMargin, y, textPaint);
-    } else {
-        canvas.drawText("Müşteri Bilgisi Yok", leftMargin, y, boldPaint)
-    }
-
-    y = 50f
-    val rightX = 350f
-    canvas.drawText(state.compName, rightX, y, boldPaint); y += 15f
-    canvas.drawText(state.compAddress, rightX, y, textPaint); y += 15f
-    canvas.drawText("BTW: ${state.compBtw}", rightX, y, textPaint);
-
-    y = 150f
-    canvas.drawText(prof.date, leftMargin, y, textPaint)
-    
-    y += 40f
-    val projName = proj?.name ?: prof.projectName
-    val projCode = proj?.code ?: ""
-    canvas.drawText("$projName - $projCode", leftMargin, y, boldPaint)
-    
-    y += 30f
-    for (item in prof.items) {
-        canvas.drawText(item.description, leftMargin, y, textPaint)
-        canvas.drawText("${item.quantity} x €${"%.2f".format(item.price)}", 300f, y, textPaint)
-        canvas.drawText("€ ${"%.2f".format(item.quantity * item.price)}", rightMargin - 50f, y, textPaint)
-        y += 15f
-    }
-
-    y += 20f
-    val total = prof.items.sumOf { it.quantity * it.price }
-    canvas.drawLine(300f, y, rightMargin, y, linePaint)
-    y += 20f
-    canvas.drawText("Totaal", leftMargin, y, boldPaint)
-    canvas.drawText("€ ${"%.2f".format(total)}", rightMargin - 50f, y, boldPaint)
-
-    if (prof.note.isNotBlank()) {
-        y += 60f
-        prof.note.lines().forEach { line -> canvas.drawText(line, leftMargin, y, textPaint); y += 15f }
-    }
-
-    y = 750f
-    canvas.drawText("Bedankt voor uw vertrouwen!", leftMargin, y, boldPaint)
-
-    doc.finishPage(page)
-    
-    val file = File(ctx.filesDir, "Proforma_${prof.projectName.replace(" ", "_")}.pdf")
-    try {
-        val out = FileOutputStream(file); doc.writeTo(out); out.close(); doc.close()
-        val uri = FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", file)
-        val intent = Intent(Intent.ACTION_SEND).apply { type = "application/pdf"; putExtra(Intent.EXTRA_STREAM, uri); addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) }
-        ctx.startActivity(Intent.createChooser(intent, "Proforma PDF Paylaş"))
-    } catch (e: Exception) { android.widget.Toast.makeText(ctx, "PDF hatası: ${e.message}", android.widget.Toast.LENGTH_LONG).show() }
 }
