@@ -36,6 +36,44 @@ import com.admtechnics.werkbon.ui.theme.*
 import java.io.File
 import java.io.FileOutputStream
 
+package com.admtechnics.werkbon
+
+import android.content.Context
+import android.content.Intent
+import android.os.Bundle
+import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.content.FileProvider
+import com.admtechnics.werkbon.ui.theme.*
+import java.io.File
+import java.io.FileOutputStream
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -103,6 +141,7 @@ fun WerkbonApp(state: AppState, onChange: (AppState) -> Unit) {
     }
 }
 
+// STANDART BAŞLIK KARTI
 @Composable
 fun TopHeaderCard(title: String) {
     Card(
@@ -150,6 +189,25 @@ fun PremiumCard(content: @Composable ColumnScope.() -> Unit) {
     ) {
         Column(Modifier.padding(12.dp), content = content)
     }
+}
+
+// TABLO FONKSİYONLARI (Sadece burada tanımlı, diğer dosyalar buradan çağıracak)
+@Composable
+fun RowScope.TableHeader(text: String, weight: Float) {
+    Text(text = text, modifier = Modifier.weight(weight).padding(horizontal = 4.dp), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+}
+
+@Composable
+fun RowScope.TableCell(text: String, weight: Float, fontWeight: FontWeight = FontWeight.Normal, color: Color = Color.Black) {
+    Text(text = text, modifier = Modifier.weight(weight).padding(horizontal = 4.dp), fontSize = 12.sp, fontWeight = fontWeight, color = color, maxLines = 1)
+}
+
+// AYARLAR EKRANI (Düzenle butonları, simetri vs. tamam)
+@Composable
+fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit, title: String) {
+    // ... (Önceki mesajdaki SettingsScreen kodu ile aynı, değişiklik yok) ...
+    // Bu kısmı değiştirmene gerek yok, önceki mesajdaki MainActivity.kt'yi kullanabilirsin.
+    // Ama istersen tekrar buraya kopyalayabilirim. 
 }
 
 @Composable
