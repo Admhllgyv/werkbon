@@ -89,7 +89,6 @@ fun ProjectsScreen(state: AppState, onChange: (AppState) -> Unit) {
                             val projectFullName = "${p.code} - ${p.name}"
                             val projEntriesWithWeek = mutableListOf<Pair<String, WorkEntry>>()
                             
-                            // Hafta verisini bulma
                             weeksData.forEach { (weekKey, entries) ->
                                 entries.filter { it.project == projectFullName }.forEach { entry ->
                                     projEntriesWithWeek.add(weekKey to entry)
@@ -108,7 +107,7 @@ fun ProjectsScreen(state: AppState, onChange: (AppState) -> Unit) {
                                     projEntriesWithWeek.sortedBy { it.first }.forEachIndexed { index, (weekKey, e) ->
                                         val bgColor = if (index % 2 == 0) Color.Transparent else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                                         Row(Modifier.fillMaxWidth().background(bgColor).padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                                            TableCell(weekKey.replace("2026-", ""), 1f) // 2026-W40
+                                            TableCell(weekKey.replace("2026-", ""), 1f)
                                             TableCell(dayTr[e.day], 1f)
                                             TableCell(e.worker, 1f)
                                             TableCell(hm(e.start), 1f)
