@@ -90,13 +90,12 @@ fun WerkbonApp(state: AppState, onChange: (AppState) -> Unit) {
             }
         }
     ) { pad ->
-        // Tüm sayfaların içine başlık kartını göndereceğiz
         Box(Modifier.padding(pad).fillMaxSize()) {
             when (tab) {
                 0 -> WerkbonScreen(state, tabs[tab].title)
                 1 -> OzetScreen(state, tabs[tab].title) 
                 2 -> AylikRaporScreen(state, tabs[tab].title)
-                3 -> ProjectsScreen(state, onChange, tabs[tab].title)
+                3 -> ProjectsScreen(state, onChange) // <-- DÜZELTİLDİ
                 4 -> ProformaScreen(state, onChange, tabs[tab].title)
                 5 -> SettingsScreen(state, onChange, tabs[tab].title)
             }
@@ -104,7 +103,6 @@ fun WerkbonApp(state: AppState, onChange: (AppState) -> Unit) {
     }
 }
 
-// Ortak Kullanılan Şık Başlık Kartı
 @Composable
 fun TopHeaderCard(title: String) {
     Card(
@@ -123,7 +121,6 @@ fun Title(text: String) {
     Text(text, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(vertical = 8.dp))
 }
 
-// Standart Simetrik Kutu
 @Composable
 fun Field(label: String, value: String, onValue: (String) -> Unit) {
     OutlinedTextField(
@@ -141,7 +138,6 @@ fun Field(label: String, value: String, onValue: (String) -> Unit) {
     )
 }
 
-// Beyaz, ince çerçeveli premium kart
 @Composable
 fun PremiumCard(content: @Composable ColumnScope.() -> Unit) {
     Card(
@@ -154,6 +150,10 @@ fun PremiumCard(content: @Composable ColumnScope.() -> Unit) {
         Column(Modifier.padding(12.dp), content = content)
     }
 }
+
+// SettingsScreen fonksiyonu aynen kalacak (değişmedi)...
+// (Kodun uzamaması için buraya tekrar yazmıyorum, önceki mesajdaki SettingsScreen'i kullanabilirsin)
+        
 
 @Composable
 fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit, title: String) {
