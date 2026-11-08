@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -27,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
@@ -52,7 +54,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WerkbonApp(state: AppState, onChange: (AppState) -> Unit) {
     val ctx = LocalContext.current
@@ -71,15 +72,6 @@ fun WerkbonApp(state: AppState, onChange: (AppState) -> Unit) {
     )
 
     Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text(tabs[tab].title, fontWeight = FontWeight.SemiBold, fontSize = 16.sp) },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            )
-        },
         bottomBar = {
             NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
                 tabs.forEachIndexed { i, item ->
@@ -98,15 +90,30 @@ fun WerkbonApp(state: AppState, onChange: (AppState) -> Unit) {
             }
         }
     ) { pad ->
+        // Tüm sayfaların içine başlık kartını göndereceğiz
         Box(Modifier.padding(pad).fillMaxSize()) {
             when (tab) {
-                0 -> WerkbonScreen(state)
-                1 -> OzetScreen(state) 
-                2 -> AylikRaporScreen(state)
-                3 -> ProjectsScreen(state, onChange)
-                4 -> ProformaScreen(state, onChange)
-                5 -> SettingsScreen(state, onChange)
+                0 -> WerkbonScreen(state, tabs[tab].title)
+                1 -> OzetScreen(state, tabs[tab].title) 
+                2 -> AylikRaporScreen(state, tabs[tab].title)
+                3 -> ProjectsScreen(state, onChange, tabs[tab].title)
+                4 -> ProformaScreen(state, onChange, tabs[tab].title)
+                5 -> SettingsScreen(state, onChange, tabs[tab].title)
             }
+        }
+    }
+}
+
+// Ortak Kullanılan Şık Başlık Kartı
+@Composable
+fun TopHeaderCard(title: String) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+    ) {
+        Box(Modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.Center) {
+            Text(title, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -116,6 +123,7 @@ fun Title(text: String) {
     Text(text, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(vertical = 8.dp))
 }
 
+// Standart Simetrik Kutu
 @Composable
 fun Field(label: String, value: String, onValue: (String) -> Unit) {
     OutlinedTextField(
@@ -133,6 +141,7 @@ fun Field(label: String, value: String, onValue: (String) -> Unit) {
     )
 }
 
+// Beyaz, ince çerçeveli premium kart
 @Composable
 fun PremiumCard(content: @Composable ColumnScope.() -> Unit) {
     Card(
@@ -147,7 +156,7 @@ fun PremiumCard(content: @Composable ColumnScope.() -> Unit) {
 }
 
 @Composable
-fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit) {
+fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit, title: String) {
     val ctx = LocalContext.current
     var newWorker by remember { mutableStateOf("") }
     var newCat by remember { mutableStateOf("") }
@@ -186,9 +195,11 @@ fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit) {
     }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp)) {
+        TopHeaderCard(title)
+
         PremiumCard {
             Title("🎨 Uygulama Tema Rengi")
-            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
                 val colors = listOf(
                     "blue" to ThemeBlue, "green" to ThemeGreen, 
                     "red" to ThemeRed, "orange" to ThemeOrange, 
@@ -197,7 +208,7 @@ fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit) {
                 colors.forEach { (name, color) ->
                     Box(
                         modifier = Modifier
-                            .size(28.dp)
+                            .size(32.dp)
                             .background(color, CircleShape)
                             .clickable { onChange(state.copy(themeName = name)) }
                             .then(if (state.themeName == name) Modifier.border(2.dp, Color.Black, CircleShape) else Modifier),
@@ -242,12 +253,12 @@ fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit) {
             OutlinedButton(
                 onClick = { logoPicker.launch("image/*") }, 
                 shape = RoundedCornerShape(8.dp),
-                modifier = Modifier.height(36.dp),
+                modifier = Modifier.fillMaxWidth().height(40.dp),
                 contentPadding = PaddingValues(horizontal = 12.dp)
             ) {
                 Text(if (state.compLogoPath.isEmpty()) "🖼️ Logo Ekle" else "🖼️ Logoyu Değiştir", fontSize = 12.sp)
             }
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(8.dp))
             Field("Firma Adı", state.compName) { onChange(state.copy(compName = it)) }
             Field("Adres", state.compAddress) { onChange(state.copy(compAddress = it)) }
             Field("E-posta", state.compEmail) { onChange(state.copy(compEmail = it)) }
@@ -283,16 +294,16 @@ fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit) {
                         newCustomerName = ""; newCustomerAddress = ""; newCustomerBtw = ""
                     }
                 }, 
-                modifier = Modifier.fillMaxWidth().height(36.dp), 
+                modifier = Modifier.fillMaxWidth().height(40.dp), 
                 shape = RoundedCornerShape(8.dp)
-            ) { Text("Firmayı Kaydet", fontSize = 12.sp) }
+            ) { Text("Firmayı Kaydet", fontSize = 13.sp) }
         }
 
         PremiumCard {
-            Title("Çalışanlar")
+            Title("Çalışanlar ve Saatlik Ücretler")
             state.workers.forEachIndexed { i, w ->
-                Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(w.name, Modifier.weight(1f), fontWeight = FontWeight.Medium, fontSize = 13.sp)
+                Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(w.name, Modifier.weight(1f), fontWeight = FontWeight.Medium, fontSize = 14.sp)
                     OutlinedTextField(
                         value = fmt(w.rate), 
                         onValueChange = { v -> 
@@ -300,34 +311,36 @@ fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit) {
                                 onChange(state.copy(workers = state.workers.toMutableList().also { l -> l[i] = w.copy(rate = newRate) })) 
                             } 
                         }, 
-                        modifier = Modifier.width(80.dp).height(50.dp), 
+                        modifier = Modifier.width(90.dp).height(45.dp), 
                         singleLine = true, 
                         shape = RoundedCornerShape(8.dp),
-                        textStyle = MaterialTheme.typography.bodyMedium
+                        textStyle = MaterialTheme.typography.bodyMedium,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                     )
                     if (state.workers.size > 1) {
                         TextButton(
                             onClick = { onChange(state.copy(workers = state.workers.toMutableList().also { l -> l.removeAt(i) })) },
                             modifier = Modifier.height(30.dp),
-                            contentPadding = PaddingValues(0.dp)
+                            contentPadding = PaddingValues(start = 8.dp)
                         ) { Text("Sil", color = MaterialTheme.colorScheme.error, fontSize = 11.sp) }
                     }
                 }
             }
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
+            Spacer(Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(
                     value = newWorker, 
                     onValueChange = { newWorker = it }, 
                     label = { Text("Yeni çalışan", fontSize=11.sp) }, 
                     singleLine = true, 
-                    modifier = Modifier.weight(1f).height(50.dp), 
+                    modifier = Modifier.weight(1f).height(45.dp), 
                     shape = RoundedCornerShape(8.dp)
                 )
                 Spacer(Modifier.width(8.dp))
                 Button(
                     onClick = { if (newWorker.isNotBlank()) { onChange(state.copy(workers = state.workers + Worker(newWorker.trim(), 20.0))); newWorker = "" } }, 
                     shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.height(36.dp)
+                    modifier = Modifier.height(40.dp)
                 ) { Text("Ekle", fontSize = 12.sp) }
             }
         }
@@ -340,7 +353,7 @@ fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit) {
                     onValueChange = { newCat = it }, 
                     label = { Text("Yeni kategori", fontSize = 11.sp) }, 
                     singleLine = true, 
-                    modifier = Modifier.weight(1f).height(50.dp), 
+                    modifier = Modifier.weight(1f).height(45.dp), 
                     shape = RoundedCornerShape(8.dp)
                 )
                 Spacer(Modifier.width(8.dp))
@@ -352,7 +365,7 @@ fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit) {
                         } 
                     }, 
                     shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.height(36.dp)
+                    modifier = Modifier.height(40.dp)
                 ) { Text("Ekle", fontSize = 12.sp) }
             }
             Spacer(Modifier.height(8.dp))
