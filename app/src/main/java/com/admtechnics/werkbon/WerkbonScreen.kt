@@ -41,7 +41,6 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoField
 import java.time.temporal.IsoFields
 
-// ... (WorkEntry, WeekNav, WeekStore, yardımcı fonksiyonlar öncekiyle aynı) ...
 data class WorkEntry(val day: Int, val project: String, val worker: String, val start: Int, val pause: Int, val end: Int) { fun hours(): Double { val net = end - start - pause; return if (net <= 0) 0.0 else r2(net / 60.0) } }
 object WeekNav { var year: Int = LocalDate.now().get(IsoFields.WEEK_BASED_YEAR); var week: Int = LocalDate.now().get(IsoFields.WEEK_OF_WEEK_BASED_YEAR) }
 object WeekStore {
@@ -94,12 +93,7 @@ fun TimeButton(label: String, minutes: Int, onPicked: (Int) -> Unit, modifier: M
 
 @Composable
 fun EntryCard(e: WorkEntry, projects: List<String>, workers: List<String>, onChange: (WorkEntry) -> Unit, onDelete: () -> Unit) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-        shape = RoundedCornerShape(8.dp),
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
-    ) {
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = BorderStroke(1.dp, Color(0xFFE2E8F0)), shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Column(Modifier.padding(10.dp)) {
             Picker("Proje", e.project, projects, { p -> onChange(e.copy(project = p)) }, Modifier.fillMaxWidth())
             Spacer(Modifier.height(6.dp))
@@ -136,14 +130,8 @@ fun WerkbonScreen(state: AppState, title: String) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp)) {
         TopHeaderCard(title)
 
-        // Hafta Seçici (Simetrik)
-        Card(
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-            shape = RoundedCornerShape(8.dp),
-            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
-        ) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = BorderStroke(1.dp, Color(0xFFE2E8F0)), shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth().height(56.dp).padding(bottom = 12.dp)) {
+            Row(Modifier.fillMaxSize().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 TextButton(onClick = { shift(-1L) }, contentPadding = PaddingValues(0.dp), modifier = Modifier.width(40.dp)) { Text("◀", fontSize = 14.sp) }
                 Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("$year - Hafta $week", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MaterialTheme.colorScheme.primary)
@@ -164,21 +152,14 @@ fun WerkbonScreen(state: AppState, title: String) {
             var isExpanded by remember { mutableStateOf(false) }
             val rotationState by animateFloatAsState(if (isExpanded) 180f else 0f)
 
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, if(isExpanded) MaterialTheme.colorScheme.primary else Color(0xFFE2E8F0)),
-                shape = RoundedCornerShape(8.dp),
-                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
-            ) {
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = BorderStroke(1.dp, if(isExpanded) MaterialTheme.colorScheme.primary else Color(0xFFE2E8F0)), shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                 Column {
                     Row(Modifier.fillMaxWidth().clickable { isExpanded = !isExpanded }.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text("${dayTr[d]} (${dayNl[d]})", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
                             Text(date.format(dateFmt), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        if (dayEntries.isNotEmpty()) {
-                            Text("${fmt(dayTotal)} sa", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(end = 12.dp))
-                        }
+                        if (dayEntries.isNotEmpty()) { Text("${fmt(dayTotal)} sa", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(end = 12.dp)) }
                         Icon(Icons.Default.KeyboardArrowDown, "Aç", modifier = Modifier.size(20.dp).rotate(rotationState))
                     }
 
@@ -192,24 +173,20 @@ fun WerkbonScreen(state: AppState, title: String) {
                             } else {
                                 for (iv in dayEntries) {
                                     val idx = iv.index
-                                    EntryCard(
-                                        e = iv.value, projects = projects, workers = workers,
-                                        onChange = { ne -> setEntries(entries.toMutableList().also { l -> l[idx] = ne }) },
-                                        onDelete = { setEntries(entries.toMutableList().also { l -> l.removeAt(idx) }) }
-                                    )
+                                    EntryCard(e = iv.value, projects = projects, workers = workers, onChange = { ne -> setEntries(entries.toMutableList().also { l -> l[idx] = ne }) }, onDelete = { setEntries(entries.toMutableList().also { l -> l.removeAt(idx) }) })
                                 }
                             }
                             
                             if (projects.isNotEmpty() && workers.isNotEmpty()) {
-                                TextButton(onClick = {
-                                    val w = workers[0]; val t = defaultTimes(w)
-                                    setEntries(entries + WorkEntry(d, projects[0], w, t[0], t[1], t[2]))
-                                }, contentPadding = PaddingValues(0.dp), modifier = Modifier.height(30.dp)) { 
-                                    Text("+ Kayıt ekle", fontSize = 12.sp) 
-                                }
+                                // YENİ: "+ Kayıt Ekle" artık tam genişlikte, tema renkli bir buton
+                                Button(
+                                    onClick = { val w = workers[0]; val t = defaultTimes(w); setEntries(entries + WorkEntry(d, projects[0], w, t[0], t[1], t[2])) },
+                                    modifier = Modifier.fillMaxWidth().height(36.dp).padding(top = 8.dp),
+                                    shape = RoundedCornerShape(8.dp)
+                                ) { Text("+ Kayıt ekle", fontSize = 12.sp) }
                             }
 
-                            Spacer(Modifier.height(8.dp))
+                            Spacer(Modifier.height(12.dp))
                             Text("💶 Fiş / Gider", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = MaterialTheme.colorScheme.primary)
                             ExpensesSection(state, key, day = d)
                         }
@@ -228,12 +205,7 @@ fun WerkbonScreen(state: AppState, title: String) {
         } else {
             pdfItems.forEach { pLabel ->
                 OutlinedButton(
-                    onClick = {
-                        PdfMaker.admContextHolder = ctx
-                        val expList = ExpenseStore.load(ctx)[key] ?: emptyList()
-                        val result = PdfMaker.makePdf(ctx, state, pLabel, entries, expList, year, week)
-                        showPdfOptions(ctx, result.file)
-                    },
+                    onClick = { PdfMaker.admContextHolder = ctx; val expList = ExpenseStore.load(ctx)[key] ?: emptyList(); val result = PdfMaker.makePdf(ctx, state, pLabel, entries, expList, year, week); showPdfOptions(ctx, result.file) },
                     modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).height(40.dp),
                     shape = RoundedCornerShape(8.dp),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
@@ -243,7 +215,8 @@ fun WerkbonScreen(state: AppState, title: String) {
         Spacer(Modifier.height(24.dp))
     }
 }
-// PDF fonksiyonları (showPdfOptions, viewPdf, savePdfToDownloads, sharePdf) aynen kalacak...
+
+// PDF fonksiyonları aynen kalacak...
 fun showPdfOptions(ctx: Context, file: File) {
     val options = arrayOf("👁️ Görüntüle", "📥 İndir (Kaydet)", "📤 Paylaş")
     AlertDialog.Builder(ctx).setTitle("PDF İşlemleri").setItems(options) { _, which ->
