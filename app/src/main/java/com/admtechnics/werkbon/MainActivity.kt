@@ -122,7 +122,7 @@ fun Title(text: String) {
     Text(text, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(vertical = 8.dp))
 }
 
-// STANDART YAZI KUTUSU
+// STANDART YAZI KUTUSU (TÜM SAYFALARDA AYNI)
 @Composable
 fun Field(label: String, value: String, onValue: (String) -> Unit) {
     OutlinedTextField(
@@ -153,7 +153,7 @@ fun PremiumCard(content: @Composable ColumnScope.() -> Unit) {
     }
 }
 
-// TABLO FONKSİYONLARI (Sadece burada tanımlı, diğer dosyalar buradan çağıracak)
+// TABLO FONKSİYONLARI (Hata almamak için tüm uygulama bunları buradan çağırır)
 @Composable
 fun RowScope.TableHeader(text: String, weight: Float) {
     Text(text = text, modifier = Modifier.weight(weight).padding(horizontal = 4.dp), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
@@ -162,14 +162,6 @@ fun RowScope.TableHeader(text: String, weight: Float) {
 @Composable
 fun RowScope.TableCell(text: String, weight: Float, fontWeight: FontWeight = FontWeight.Normal, color: Color = Color.Black) {
     Text(text = text, modifier = Modifier.weight(weight).padding(horizontal = 4.dp), fontSize = 12.sp, fontWeight = fontWeight, color = color, maxLines = 1)
-}
-
-// AYARLAR EKRANI (Düzenle butonları, simetri vs. tamam)
-@Composable
-fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit, title: String) {
-    // ... (Önceki mesajdaki SettingsScreen kodu ile aynı, değişiklik yok) ...
-    // Bu kısmı değiştirmene gerek yok, önceki mesajdaki MainActivity.kt'yi kullanabilirsin.
-    // Ama istersen tekrar buraya kopyalayabilirim. 
 }
 
 @Composable
