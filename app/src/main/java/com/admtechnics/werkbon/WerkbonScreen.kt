@@ -178,7 +178,6 @@ fun WerkbonScreen(state: AppState, title: String) {
                             }
                             
                             if (projects.isNotEmpty() && workers.isNotEmpty()) {
-                                // YENİ: "+ Kayıt Ekle" artık tam genişlikte, tema renkli bir buton
                                 Button(
                                     onClick = { val w = workers[0]; val t = defaultTimes(w); setEntries(entries + WorkEntry(d, projects[0], w, t[0], t[1], t[2])) },
                                     modifier = Modifier.fillMaxWidth().height(36.dp).padding(top = 8.dp),
@@ -216,7 +215,6 @@ fun WerkbonScreen(state: AppState, title: String) {
     }
 }
 
-// PDF fonksiyonları aynen kalacak...
 fun showPdfOptions(ctx: Context, file: File) {
     val options = arrayOf("👁️ Görüntüle", "📥 İndir (Kaydet)", "📤 Paylaş")
     AlertDialog.Builder(ctx).setTitle("PDF İşlemleri").setItems(options) { _, which ->
