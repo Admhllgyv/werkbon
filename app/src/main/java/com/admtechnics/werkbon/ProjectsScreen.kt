@@ -34,14 +34,21 @@ fun ProjectsScreen(state: AppState, onChange: (AppState) -> Unit) {
     var newCode by remember { mutableStateOf("") }
     var selectedCustomer by remember { mutableStateOf("") }
     
+    // Düzenleme için state
+    var editProjectIndex by remember { mutableStateOf(-1) }
+
     val customerNames = state.customers.map { it.name }
     val weeksData = WeekStore.load(ctx)
     val expensesData = ExpenseStore.load(ctx)
     val dateFmt = DateTimeFormatter.ofPattern("dd.MM.yyyy")
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp)) {
+        // Sayfa Başlığı Eklendi
+        TopHeaderCard("Projeler")
+
+        // Yeni Proje Ekleme (Premium Card)
         PremiumCard {
-            Title("Yeni Proje Ekle")
+            Title(if (editProjectIndex >= 0) "Projeyi Düzenle" else "Yeni Proje Ekle")
             Field("Proje / Müşteri adı", newName) { newName = it }
             Field("Proje kodu (örn. E260320)", newCode) { newCode = it }
             
@@ -55,10 +62,19 @@ fun ProjectsScreen(state: AppState, onChange: (AppState) -> Unit) {
             Button(onClick = {
                 if (newName.isNotBlank()) {
                     val code = newCode.trim().ifEmpty { "E260000" }
-                    onChange(state.copy(projects = state.projects + Project(code, newName.trim(), selectedCustomer)))
+                    if (editProjectIndex >= 0) {
+                        val updated = state.projects.toMutableList()
+                        updated[editProjectIndex] = Project(code, newName.trim(), selectedCustomer)
+                        onChange(state.copy(projects = updated))
+                        editProjectIndex = -1
+                    } else {
+                        onChange(state.copy(projects = state.projects + Project(code, newName.trim(), selectedCustomer)))
+                    }
                     newName = ""; newCode = ""; selectedCustomer = ""
                 }
-            }, modifier = Modifier.fillMaxWidth().height(40.dp), shape = RoundedCornerShape(8.dp)) { Text("Projeyi Kaydet", fontSize = 13.sp) }
+            }, modifier = Modifier.fillMaxWidth().height(40.dp), shape = RoundedCornerShape(8.dp)) { 
+                Text(if (editProjectIndex >= 0) "Projeyi Güncelle" else "Projeyi Kaydet", fontSize = 13.sp) 
+            }
         }
 
         Title("Mevcut Projeler ve Geçmiş")
@@ -83,7 +99,15 @@ fun ProjectsScreen(state: AppState, onChange: (AppState) -> Unit) {
                             Spacer(Modifier.height(8.dp))
                             
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                                TextButton(onClick = { onChange(state.copy(projects = state.projects.toMutableList().also { l -> l.removeAt(i) })) }, modifier = Modifier.height(30.dp)) { Text("🗑️ Projeyi Sil", color = MaterialTheme.colorScheme.error, fontSize = 11.sp) }
+                                TextButton(onClick = { 
+                                    newName = p.name; newCode = p.code; selectedCustomer = p.customerName
+                                    editProjectIndex = i 
+                                }, modifier = Modifier.height(30.dp)) { 
+                                    Text("✏️ Düzenle", color = MaterialTheme.colorScheme.primary, fontSize = 11.sp) 
+                                }
+                                TextButton(onClick = { onChange(state.copy(projects = state.projects.toMutableList().also { l -> l.removeAt(i) })) }, modifier = Modifier.height(30.dp)) { 
+                                    Text("🗑️ Sil", color = MaterialTheme.colorScheme.error, fontSize = 11.sp) 
+                                }
                             }
 
                             val projectFullName = "${p.code} - ${p.name}"
