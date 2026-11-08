@@ -130,7 +130,7 @@ fun WerkbonScreen(state: AppState, title: String) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp)) {
         TopHeaderCard(title)
 
-        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = BorderStroke(1.dp, Color(0xFFE2E8F0)), shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth().height(56.dp).padding(bottom = 12.dp)) {
+        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = BorderStroke(1.dp, Color(0xFFE2E8F0)), shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth().height(52.dp).padding(bottom = 12.dp)) {
             Row(Modifier.fillMaxSize().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 TextButton(onClick = { shift(-1L) }, contentPadding = PaddingValues(0.dp), modifier = Modifier.width(40.dp)) { Text("◀", fontSize = 14.sp) }
                 Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -178,11 +178,12 @@ fun WerkbonScreen(state: AppState, title: String) {
                             }
                             
                             if (projects.isNotEmpty() && workers.isNotEmpty()) {
+                                // FIX: Butonlar artık tamamen simetrik (Aynı genişlik, yükseklik)
                                 Button(
                                     onClick = { val w = workers[0]; val t = defaultTimes(w); setEntries(entries + WorkEntry(d, projects[0], w, t[0], t[1], t[2])) },
-                                    modifier = Modifier.fillMaxWidth().height(36.dp).padding(top = 8.dp),
+                                    modifier = Modifier.fillMaxWidth().height(40.dp).padding(top = 8.dp),
                                     shape = RoundedCornerShape(8.dp)
-                                ) { Text("+ Kayıt ekle", fontSize = 12.sp) }
+                                ) { Text("+ Kayıt ekle", fontSize = 13.sp) }
                             }
 
                             Spacer(Modifier.height(12.dp))
@@ -215,6 +216,7 @@ fun WerkbonScreen(state: AppState, title: String) {
     }
 }
 
+// PDF fonksiyonları aynen kalacak...
 fun showPdfOptions(ctx: Context, file: File) {
     val options = arrayOf("👁️ Görüntüle", "📥 İndir (Kaydet)", "📤 Paylaş")
     AlertDialog.Builder(ctx).setTitle("PDF İşlemleri").setItems(options) { _, which ->
