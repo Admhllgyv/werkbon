@@ -177,7 +177,7 @@ fun ExpensesSection(state: AppState, key: String, day: Int) {
         }
         
         if (projects.isNotEmpty() && cats.isNotEmpty()) {
-            // FIX: + Fiş ekle butonu tıpa tıp + Kayıt ekle butonuyla aynı boyutta (tam genişlik, 40.dp yükseklik) yapıldı.
+            // FIX: Simetri tamamlandı.
             Button(
                 onClick = { update(items + Expense(id = System.currentTimeMillis().toString(), day = day, project = projects[0], category = cats[0], amount = 0.0, image = "")) }, 
                 shape = RoundedCornerShape(8.dp), 
