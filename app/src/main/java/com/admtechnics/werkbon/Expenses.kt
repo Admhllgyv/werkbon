@@ -110,7 +110,13 @@ fun ExpenseCard(e: Expense, projects: List<String>, cats: List<String>, onChange
             Spacer(Modifier.height(6.dp))
             
             OutlinedTextField(
-                value = txt, onValueChange = { v -> txt = v; onChange(e.copy(amount = v.replace(',', '.').toDoubleOrNull() ?: 0.0)) },
+                value = txt, onValueChange = { v -> 
+                    txt = v
+                    val cleanValue = v.replace(',', '.')
+                    if (cleanValue.isEmpty() || cleanValue.matches(Regex("^\\d*\\.?\\d*$"))) {
+                        onChange(e.copy(amount = cleanValue.toDoubleOrNull() ?: 0.0))
+                    }
+                },
                 label = { Text("Tutar (€)", fontSize = 11.sp) }, singleLine = true, textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 14.sp), shape = RoundedCornerShape(8.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth().height(52.dp), colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = Color.LightGray)
             )
@@ -177,7 +183,6 @@ fun ExpensesSection(state: AppState, key: String, day: Int) {
         }
         
         if (projects.isNotEmpty() && cats.isNotEmpty()) {
-            // FIX: Simetri tamamlandı.
             Button(
                 onClick = { update(items + Expense(id = System.currentTimeMillis().toString(), day = day, project = projects[0], category = cats[0], amount = 0.0, image = "")) }, 
                 shape = RoundedCornerShape(8.dp), 
