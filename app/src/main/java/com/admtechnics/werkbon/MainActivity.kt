@@ -103,7 +103,6 @@ fun WerkbonApp(state: AppState, onChange: (AppState) -> Unit) {
     }
 }
 
-// TÜM SAYFALARDA KULLANILAN STANDART BAŞLIK KARTI
 @Composable
 fun TopHeaderCard(title: String) {
     Card(
@@ -122,7 +121,7 @@ fun Title(text: String) {
     Text(text, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(vertical = 8.dp))
 }
 
-// TÜM YAZI KUTULARI İÇİN STANDART (Firma Adı, Adres, Yeni Çalışan vs.)
+// STANDART YAZI KUTUSU
 @Composable
 fun Field(label: String, value: String, onValue: (String) -> Unit) {
     OutlinedTextField(
@@ -132,7 +131,7 @@ fun Field(label: String, value: String, onValue: (String) -> Unit) {
         singleLine = true, 
         textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 14.sp),
         shape = RoundedCornerShape(8.dp),
-        modifier = Modifier.fillMaxWidth().height(52.dp).padding(bottom = 4.dp),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(bottom = 4.dp),
         colors = OutlinedTextFieldDefaults.colors(
             unfocusedBorderColor = Color.LightGray,
             focusedBorderColor = MaterialTheme.colorScheme.primary
@@ -162,10 +161,8 @@ fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit, title: String)
     var newCustomerAddress by remember { mutableStateOf("") }
     var newCustomerBtw by remember { mutableStateOf("") }
 
-    // Düzenleme Modu İçin State'ler
-    var editWorkerIndex by remember { mutableStateOf(-1) }
-    var editCatIndex by remember { mutableStateOf(-1) }
     var editCustomerIndex by remember { mutableStateOf(-1) }
+    var editCatIndex by remember { mutableStateOf(-1) }
 
     val backupFilePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) {
@@ -238,7 +235,7 @@ fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit, title: String)
             state.customers.forEachIndexed { i, c ->
                 Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) { Text(c.name, fontWeight = FontWeight.Medium, fontSize = 13.sp); Text(c.btw, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                    TextButton(onClick = { editCustomerIndex = i }, modifier = Modifier.height(30.dp)) { Text("✏️ Düzenle", color = MaterialTheme.colorScheme.primary, fontSize = 11.sp) }
+                    TextButton(onClick = { newCustomerName = c.name; newCustomerAddress = c.address; newCustomerBtw = c.btw; editCustomerIndex = i }, modifier = Modifier.height(30.dp)) { Text("✏️ Düzenle", color = MaterialTheme.colorScheme.primary, fontSize = 11.sp) }
                     TextButton(onClick = { onChange(state.copy(customers = state.customers.toMutableList().also { it.removeAt(i) })) }, modifier = Modifier.height(30.dp)) { Text("Sil", color = MaterialTheme.colorScheme.error, fontSize = 11.sp) }
                 }
                 Divider(color = Color.LightGray.copy(alpha=0.5f))
@@ -267,16 +264,20 @@ fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit, title: String)
             state.workers.forEachIndexed { i, w ->
                 Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(w.name, Modifier.weight(1f), fontWeight = FontWeight.Medium, fontSize = 14.sp)
-                    // Ücret Kutusu (Standart)
                     OutlinedTextField(
                         value = fmt(w.rate), 
-                        onValueChange = { v -> v.replace(',', '.').toDoubleOrNull()?.let { nr -> onChange(state.copy(workers = state.workers.toMutableList().also { l -> l[i] = w.copy(rate = nr) })) } }, 
+                        onValueChange = { v -> 
+                            val cleanValue = v.replace(',', '.')
+                            if (cleanValue.isEmpty() || cleanValue.matches(Regex("^\\d*\\.?\\d*$"))) {
+                                val nr = cleanValue.toDoubleOrNull() ?: 0.0
+                                onChange(state.copy(workers = state.workers.toMutableList().also { l -> l[i] = w.copy(rate = nr) })) 
+                            }
+                        }, 
                         modifier = Modifier.width(80.dp).height(52.dp), 
                         singleLine = true, shape = RoundedCornerShape(8.dp), 
                         textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp), 
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                     )
-                    TextButton(onClick = { editWorkerIndex = i }, modifier = Modifier.height(30.dp)) { Text("✏️", fontSize = 16.sp) }
                     if (state.workers.size > 1) { TextButton(onClick = { onChange(state.copy(workers = state.workers.toMutableList().also { l -> l.removeAt(i) })) }, modifier = Modifier.height(30.dp)) { Text("Sil", color = MaterialTheme.colorScheme.error, fontSize = 11.sp) } }
                 }
             }
@@ -286,17 +287,10 @@ fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit, title: String)
                 Spacer(Modifier.width(8.dp))
                 Button(onClick = { 
                     if (newWorker.isNotBlank()) { 
-                        if (editWorkerIndex >= 0) {
-                            val updated = state.workers.toMutableList()
-                            updated[editWorkerIndex] = Worker(newWorker.trim(), updated[editWorkerIndex].rate)
-                            onChange(state.copy(workers = updated))
-                            editWorkerIndex = -1
-                        } else {
-                            onChange(state.copy(workers = state.workers + Worker(newWorker.trim(), 20.0)))
-                        }
+                        onChange(state.copy(workers = state.workers + Worker(newWorker.trim(), 20.0)))
                         newWorker = "" 
                     } 
-                }, shape = RoundedCornerShape(8.dp), modifier = Modifier.height(40.dp)) { Text(if (editWorkerIndex >= 0) "Güncelle" else "Ekle", fontSize = 12.sp) }
+                }, shape = RoundedCornerShape(8.dp), modifier = Modifier.height(40.dp)) { Text("Ekle", fontSize = 12.sp) }
             }
         }
 
@@ -323,7 +317,7 @@ fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit, title: String)
             state.categories.forEachIndexed { i, c ->
                 Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("• $c", Modifier.weight(1f), fontSize = 13.sp)
-                    TextButton(onClick = { newCat = c; editCatIndex = i }, modifier = Modifier.height(30.dp)) { Text("✏️", fontSize = 16.sp) }
+                    TextButton(onClick = { newCat = c; editCatIndex = i }, modifier = Modifier.height(30.dp)) { Text("✏️ Düzenle", color = MaterialTheme.colorScheme.primary, fontSize = 11.sp) }
                     if (state.categories.size > 1) { TextButton(onClick = { onChange(state.copy(categories = state.categories.toMutableList().also { l -> l.removeAt(i) })) }, modifier = Modifier.height(30.dp)) { Text("Sil", color = MaterialTheme.colorScheme.error, fontSize = 11.sp) } }
                 }
             }
