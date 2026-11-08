@@ -41,6 +41,7 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoField
 import java.time.temporal.IsoFields
 
+// ... (WorkEntry, WeekStore, yardımcı fonksiyonlar aynen kalacak) ...
 data class WorkEntry(val day: Int, val project: String, val worker: String, val start: Int, val pause: Int, val end: Int) { fun hours(): Double { val net = end - start - pause; return if (net <= 0) 0.0 else r2(net / 60.0) } }
 object WeekNav { var year: Int = LocalDate.now().get(IsoFields.WEEK_BASED_YEAR); var week: Int = LocalDate.now().get(IsoFields.WEEK_OF_WEEK_BASED_YEAR) }
 object WeekStore {
@@ -178,7 +179,7 @@ fun WerkbonScreen(state: AppState, title: String) {
                             }
                             
                             if (projects.isNotEmpty() && workers.isNotEmpty()) {
-                                // FIX: Butonlar artık tamamen simetrik (Aynı genişlik, yükseklik)
+                                // FIX: Butonlar tamamen simetrik (40.dp yükseklik, fillMaxWidth)
                                 Button(
                                     onClick = { val w = workers[0]; val t = defaultTimes(w); setEntries(entries + WorkEntry(d, projects[0], w, t[0], t[1], t[2])) },
                                     modifier = Modifier.fillMaxWidth().height(40.dp).padding(top = 8.dp),
