@@ -123,3 +123,13 @@ fun AylikRaporScreen(state: AppState, title: String) {
         Spacer(Modifier.height(24.dp))
     }
 }
+
+@Composable
+fun RowScope.TableHeader(text: String, weight: Float) {
+    Text(text = text, modifier = Modifier.weight(weight).padding(horizontal = 4.dp), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+}
+
+@Composable
+fun RowScope.TableCell(text: String, weight: Float, fontWeight: FontWeight = FontWeight.Normal, color: Color = Color.Black) {
+    Text(text = text, modifier = Modifier.weight(weight).padding(horizontal = 4.dp), fontSize = 12.sp, fontWeight = fontWeight, color = color, maxLines = 1)
+}
