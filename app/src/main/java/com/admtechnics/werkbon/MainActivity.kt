@@ -3,8 +3,6 @@ package com.admtechnics.werkbon
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -295,7 +293,6 @@ fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit) {
             state.workers.forEachIndexed { i, w ->
                 Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(w.name, Modifier.weight(1f), fontWeight = FontWeight.Medium, fontSize = 13.sp)
-                    // HATA ÇÖZÜMÜ BURADA (newRate -> it)
                     OutlinedTextField(
                         value = fmt(w.rate), 
                         onValueChange = { v -> 
@@ -332,6 +329,44 @@ fun SettingsScreen(state: AppState, onChange: (AppState) -> Unit) {
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.height(36.dp)
                 ) { Text("Ekle", fontSize = 12.sp) }
+            }
+        }
+
+        PremiumCard {
+            Title("Gider / Malzeme Kategorileri")
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = newCat, 
+                    onValueChange = { newCat = it }, 
+                    label = { Text("Yeni kategori", fontSize = 11.sp) }, 
+                    singleLine = true, 
+                    modifier = Modifier.weight(1f).height(50.dp), 
+                    shape = RoundedCornerShape(8.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Button(
+                    onClick = { 
+                        if (newCat.isNotBlank() && !state.categories.contains(newCat.trim())) { 
+                            onChange(state.copy(categories = state.categories + newCat.trim()))
+                            newCat = "" 
+                        } 
+                    }, 
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.height(36.dp)
+                ) { Text("Ekle", fontSize = 12.sp) }
+            }
+            Spacer(Modifier.height(8.dp))
+            state.categories.forEachIndexed { i, c ->
+                Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("• $c", Modifier.weight(1f), fontSize = 13.sp)
+                    if (state.categories.size > 1) {
+                        TextButton(
+                            onClick = { onChange(state.copy(categories = state.categories.toMutableList().also { l -> l.removeAt(i) })) },
+                            modifier = Modifier.height(30.dp),
+                            contentPadding = PaddingValues(0.dp)
+                        ) { Text("Sil", color = MaterialTheme.colorScheme.error, fontSize = 11.sp) }
+                    }
+                }
             }
         }
     }
