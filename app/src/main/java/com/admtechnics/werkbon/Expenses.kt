@@ -111,8 +111,8 @@ fun ExpenseCard(e: Expense, projects: List<String>, cats: List<String>, onChange
             
             OutlinedTextField(
                 value = txt, onValueChange = { v -> txt = v; onChange(e.copy(amount = v.replace(',', '.').toDoubleOrNull() ?: 0.0)) },
-                label = { Text("Tutar (€)", fontSize = 11.sp) }, singleLine = true, textStyle = MaterialTheme.typography.bodyLarge, shape = RoundedCornerShape(8.dp),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth().height(56.dp), colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = Color.LightGray)
+                label = { Text("Tutar (€)", fontSize = 11.sp) }, singleLine = true, textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 14.sp), shape = RoundedCornerShape(8.dp),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth().height(52.dp), colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = Color.LightGray)
             )
             
             Spacer(Modifier.height(8.dp))
@@ -177,7 +177,12 @@ fun ExpensesSection(state: AppState, key: String, day: Int) {
         }
         
         if (projects.isNotEmpty() && cats.isNotEmpty()) {
-            Button(onClick = { update(items + Expense(id = System.currentTimeMillis().toString(), day = day, project = projects[0], category = cats[0], amount = 0.0, image = "")) }, shape = RoundedCornerShape(8.dp), modifier = Modifier.padding(top = 8.dp).height(36.dp)) { Text("+ Fiş ekle", fontSize = 11.sp) }
+            // FIX: + Fiş ekle butonu tıpa tıp + Kayıt ekle butonuyla aynı boyutta (tam genişlik, 40.dp yükseklik) yapıldı.
+            Button(
+                onClick = { update(items + Expense(id = System.currentTimeMillis().toString(), day = day, project = projects[0], category = cats[0], amount = 0.0, image = "")) }, 
+                shape = RoundedCornerShape(8.dp), 
+                modifier = Modifier.fillMaxWidth().height(40.dp).padding(top = 8.dp)
+            ) { Text("+ Fiş ekle", fontSize = 13.sp) }
         }
     }
 }
