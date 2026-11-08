@@ -159,7 +159,6 @@ fun OzetScreen(state: AppState, title: String) {
     }
 }
 
-// RowScope kullanarak Modifier.weight() hatası giderildi.
 @Composable
 fun RowScope.TableHeader(text: String, weight: Float) {
     Text(text = text, modifier = Modifier.weight(weight).padding(horizontal = 4.dp), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
