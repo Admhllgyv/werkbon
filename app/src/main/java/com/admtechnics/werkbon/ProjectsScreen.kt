@@ -34,7 +34,6 @@ fun ProjectsScreen(state: AppState, onChange: (AppState) -> Unit) {
     var newCode by remember { mutableStateOf("") }
     var selectedCustomer by remember { mutableStateOf("") }
     
-    // Düzenleme için state
     var editProjectIndex by remember { mutableStateOf(-1) }
 
     val customerNames = state.customers.map { it.name }
@@ -43,10 +42,8 @@ fun ProjectsScreen(state: AppState, onChange: (AppState) -> Unit) {
     val dateFmt = DateTimeFormatter.ofPattern("dd.MM.yyyy")
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp)) {
-        // Sayfa Başlığı Eklendi
         TopHeaderCard("Projeler")
 
-        // Yeni Proje Ekleme (Premium Card)
         PremiumCard {
             Title(if (editProjectIndex >= 0) "Projeyi Düzenle" else "Yeni Proje Ekle")
             Field("Proje / Müşteri adı", newName) { newName = it }
